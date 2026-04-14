@@ -1,0 +1,62 @@
+{
+	"app.name": "OpenDecree",
+	"app.title": "OpenDecree Admin",
+
+	"nav.home": "Home",
+	"nav.schemas": "Schemas",
+	"nav.tenants": "Tenants",
+	"nav.myConfig": "My Config",
+
+	"schema.singular": "Schema",
+	"schema.plural": "Schemas",
+	"schema.import": "Import Schema",
+	"schema.export": "Export YAML",
+	"schema.publish": "Publish",
+	"schema.publishing": "Publishing...",
+	"schema.statusPublished": "Published",
+	"schema.statusDraft": "Draft",
+	"schema.noSchemas": "No schemas yet.",
+	"schema.noMatch": "No schemas match your filter.",
+	"schema.noFields": "No fields defined.",
+	"schema.importing": "Importing...",
+
+	"tenant.singular": "Tenant",
+	"tenant.plural": "Tenants",
+	"tenant.create": "Create Tenant",
+	"tenant.creating": "Creating...",
+	"tenant.delete": "Delete",
+	"tenant.confirmDelete": "Confirm Delete",
+	"tenant.deleting": "Deleting...",
+	"tenant.noTenants": "No tenants yet.",
+	"tenant.noMatch": "No tenants match your filter.",
+	"tenant.selectSchema": "Select a schema",
+
+	"config.edit": "Edit",
+	"config.cancelEdit": "Cancel Edit",
+	"config.apply": "Apply",
+	"config.applying": "Applying...",
+	"config.reviewAndApply": "Review & Apply",
+	"config.resetAll": "Reset All",
+	"config.notSet": "not set",
+	"config.nullable": "nullable",
+	"config.locked": "locked",
+	"config.modified": "Modified",
+	"config.pendingChanges": "pending changes",
+	"config.description": "Description (optional)",
+
+	"field.lock": "Lock",
+	"field.unlock": "Unlock",
+	"field.undo": "Undo",
+
+	"common.back": "Back",
+	"common.cancel": "Cancel",
+	"common.filter": "Filter by name...",
+	"common.loading": "Loading...",
+	"common.error": "Error",
+
+	"auth.subject": "Subject",
+	"auth.role": "Role",
+	"auth.tenantId": "Tenant ID",
+
+	"schema.loadingSchemas": "Loading schemas..."
+}

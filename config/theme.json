@@ -1,0 +1,11 @@
+{
+	"appName": "OpenDecree",
+	"logoUrl": null,
+	"features": {
+		"schemas": true,
+		"audit": true,
+		"configVersions": true,
+		"fieldLocks": true,
+		"configImportExport": true
+	}
+}
