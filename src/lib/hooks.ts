@@ -115,6 +115,70 @@ export function useFieldLocks(tenantId: string) {
 	});
 }
 
+/** Fetch config version history for a tenant via GET /v1/tenants/{tenantId}/versions. */
+export function useVersions(tenantId: string) {
+	const client = useApiClient();
+	return useQuery({
+		queryKey: ["versions", tenantId],
+		queryFn: async () => {
+			const { data, error } = await client.GET("/v1/tenants/{tenantId}/versions", {
+				params: { path: { tenantId } },
+			});
+			if (error) throw new Error(formatError(error));
+			return data;
+		},
+		enabled: !!tenantId,
+	});
+}
+
+/** Fetch config at a specific version via GET /v1/tenants/{tenantId}/versions/{version}. */
+export function useConfigAtVersion(tenantId: string, version: number | undefined) {
+	const client = useApiClient();
+	return useQuery({
+		queryKey: ["config", tenantId, "v", version],
+		queryFn: async () => {
+			const { data, error } = await client.GET("/v1/tenants/{tenantId}/versions/{version}", {
+				params: { path: { tenantId, version: version as number } },
+			});
+			if (error) throw new Error(formatError(error));
+			return data;
+		},
+		enabled: !!tenantId && version !== undefined,
+	});
+}
+
+/** Fetch audit log entries for a tenant. */
+export function useAuditLog(tenantId: string, filters?: { fieldPath?: string; actor?: string }) {
+	const client = useApiClient();
+	return useQuery({
+		queryKey: ["audit", tenantId, filters],
+		queryFn: async () => {
+			const { data, error } = await client.GET("/v1/audit/logs", {
+				params: { query: { tenantId, ...filters, pageSize: 50 } },
+			});
+			if (error) throw new Error(formatError(error));
+			return data;
+		},
+		enabled: !!tenantId,
+	});
+}
+
+/** Fetch tenant-level usage stats. */
+export function useTenantUsage(tenantId: string) {
+	const client = useApiClient();
+	return useQuery({
+		queryKey: ["usage", tenantId],
+		queryFn: async () => {
+			const { data, error } = await client.GET("/v1/tenants/{tenantId}/usage", {
+				params: { path: { tenantId } },
+			});
+			if (error) throw new Error(formatError(error));
+			return data;
+		},
+		enabled: !!tenantId,
+	});
+}
+
 /** Extract a useful message from an API error response. */
 function formatError(error: unknown): string {
 	if (error && typeof error === "object" && "message" in error) {

@@ -14,15 +14,15 @@
 import { chromium } from "@playwright/test";
 import { existsSync, mkdirSync } from "node:fs";
 
-const BASE_URL = "http://localhost:5173";
+const BASE_URL = process.env.BASE_URL ?? "http://localhost:5174";
 const OUT_DIR = "screenshots";
 
 // IDs from fixtures — update if you reseed.
-const SCHEMA_BILLING = "55d65371-3750-41fa-a724-7b4fbe90f9b3";
-const SCHEMA_SHOWCASE = "48cbf8ce-e37c-428e-af72-8de18f0a7af5";
-const TENANT_ACME = "ae0848c3-f0e8-421a-950c-652dc6dc2d11";
-const TENANT_DEMO = "35e49c9b-83ff-43d5-9e22-e4998971e479";
-const TENANT_BLANK = "d3aefa9a-aff5-4629-b69b-b5ac2ab01f78";
+const SCHEMA_BILLING = "5c66e344-6d24-4182-a632-052c8383bbd0";
+const SCHEMA_SHOWCASE = "3449dec3-ca10-4ef5-b4b4-b55afbbfd3c1";
+const TENANT_ACME = "7593edc7-d109-45d5-a6df-057365e2b0f2";
+const TENANT_DEMO = "90695376-db8e-4804-9b51-bd812e04bd71";
+const TENANT_BLANK = "a4037ec8-53dc-48f9-bdac-3bd2ab1e90f7";
 
 interface Page {
 	name: string;
@@ -38,11 +38,11 @@ const pages: Page[] = [
 	{ name: "schema-showcase", path: `/schemas/${SCHEMA_SHOWCASE}`, wait: 500 },
 	{ name: "schema-import", path: "/schemas/import" },
 	{ name: "tenants", path: "/tenants" },
+	{ name: "tenant-demo", path: `/tenants/${TENANT_DEMO}`, wait: 500 },
 	{ name: "tenant-acme", path: `/tenants/${TENANT_ACME}`, wait: 500 },
 	{ name: "tenant-create", path: "/tenants/create", wait: 500 },
-	{ name: "config-acme", path: `/tenants/${TENANT_ACME}/config`, wait: 1000 },
-	{ name: "config-demo", path: `/tenants/${TENANT_DEMO}/config`, wait: 1000 },
-	{ name: "config-blank", path: `/tenants/${TENANT_BLANK}/config`, wait: 1000 },
+	{ name: "audit-demo", path: `/tenants/${TENANT_DEMO}/audit`, wait: 500 },
+	{ name: "usage-demo", path: `/tenants/${TENANT_DEMO}/usage`, wait: 500 },
 ];
 
 async function main() {
@@ -61,9 +61,6 @@ async function main() {
 		// Set auth in localStorage before navigating.
 		await context.addInitScript(() => {
 			localStorage.setItem("decree-auth", JSON.stringify({ subject: "admin", role: "superadmin" }));
-			if (document.documentElement) {
-				// Dark mode class will be set by the app on load.
-			}
 		});
 
 		// For dark mode, also set the preference.

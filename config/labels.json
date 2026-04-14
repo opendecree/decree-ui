@@ -43,6 +43,13 @@
 	"config.modified": "Modified",
 	"config.pendingChanges": "pending changes",
 	"config.description": "Description (optional)",
+	"config.history": "History",
+	"config.export": "Export YAML",
+	"config.import": "Import YAML",
+	"config.rollback": "Rollback",
+	"config.rollbackConfirm": "Rollback to v",
+	"config.rollbacking": "Rolling back...",
+	"config.noVersions": "No versions yet.",
 
 	"field.lock": "Lock",
 	"field.unlock": "Unlock",

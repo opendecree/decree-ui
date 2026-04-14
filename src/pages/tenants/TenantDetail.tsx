@@ -2,6 +2,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import type { components } from "../../api/schema";
+import { ConfigHistory } from "../../components/ConfigHistory";
 import {
 	DeprecatedBadge,
 	ReadOnlyBadge,
@@ -9,12 +10,14 @@ import {
 	WriteOnceBadge,
 } from "../../components/FieldBadges";
 import { PendingChangesBar } from "../../components/PendingChangesBar";
+import { SlideOver } from "../../components/SlideOver";
 import { TypedInput } from "../../components/TypedInput";
 import { useAuth } from "../../lib/auth";
 import { fieldTypeColor, fieldTypeIcon, fieldTypeLabel } from "../../lib/field-types";
 import { groupFields } from "../../lib/fields";
 import {
 	useApiClient,
+	useAuditLog,
 	useConfig,
 	useFieldLocks,
 	useSchemaVersion,
@@ -83,8 +86,10 @@ export function TenantDetail() {
 	const config = configData?.config;
 
 	const { data: locksData } = useFieldLocks(tid);
+	const { data: auditData } = useAuditLog(tid);
 
 	const [editing, setEditing] = useState(false);
+	const [showHistory, setShowHistory] = useState(false);
 	const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 	const [pendingChanges, setPendingChanges] = useState<Map<string, string>>(new Map());
 	const [description, setDescription] = useState("");
@@ -133,6 +138,19 @@ export function TenantDetail() {
 		}
 		return m;
 	}, [fields]);
+
+	const lastChangedMap = useMemo(() => {
+		const m = new Map<string, { actor: string; time: string }>();
+		for (const entry of auditData?.entries ?? []) {
+			if (entry.fieldPath && !m.has(entry.fieldPath)) {
+				m.set(entry.fieldPath, {
+					actor: entry.actor ?? "",
+					time: entry.createdAt ?? "",
+				});
+			}
+		}
+		return m;
+	}, [auditData]);
 
 	const groups = useMemo(() => groupFields(fields), [fields]);
 
@@ -276,6 +294,25 @@ export function TenantDetail() {
 							</p>
 						</div>
 						<div className="flex gap-2">
+							<button
+								type="button"
+								onClick={() => setShowHistory(true)}
+								className="rounded border border-gray-300 px-4 py-2 text-sm font-medium hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800"
+							>
+								{label("config.history")}
+							</button>
+							<Link
+								to={`/tenants/${tid}/audit`}
+								className="rounded border border-gray-300 px-4 py-2 text-sm font-medium hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800"
+							>
+								Audit Log
+							</Link>
+							<Link
+								to={`/tenants/${tid}/usage`}
+								className="rounded border border-gray-300 px-4 py-2 text-sm font-medium hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800"
+							>
+								Usage
+							</Link>
 							{canEditConfig(auth.role) &&
 								(!editing ? (
 									<button
@@ -353,6 +390,7 @@ export function TenantDetail() {
 											value={getDisplayValue(field.path ?? "")}
 											isDirty={pendingChanges.has(field.path ?? "")}
 											isLocked={lockedFields.has(field.path ?? "")}
+											lastChanged={lastChangedMap.get(field.path ?? "")}
 											editing={editing}
 											showLocks={canManageLocks(auth.role)}
 											onChange={(v) => handleChange(field.path ?? "", v)}
@@ -365,6 +403,14 @@ export function TenantDetail() {
 							</div>
 						))}
 					</div>
+
+					<SlideOver
+						open={showHistory}
+						onClose={() => setShowHistory(false)}
+						title={label("config.history")}
+					>
+						<ConfigHistory tenantId={tid} currentVersion={config?.version} role={auth.role} />
+					</SlideOver>
 
 					{editing && (
 						<PendingChangesBar
@@ -390,6 +436,7 @@ interface FieldRowProps {
 	value: string;
 	isDirty: boolean;
 	isLocked: boolean;
+	lastChanged?: { actor: string; time: string };
 	editing: boolean;
 	showLocks: boolean;
 	onChange: (value: string) => void;
@@ -403,6 +450,7 @@ function FieldRow({
 	value,
 	isDirty,
 	isLocked,
+	lastChanged,
 	editing,
 	showLocks,
 	onChange,
@@ -459,6 +507,12 @@ function FieldRow({
 				{field.deprecated && field.redirectTo && (
 					<p className="mb-2 text-xs text-amber-600 dark:text-amber-400">
 						Use <span className="font-mono">{field.redirectTo}</span> instead
+					</p>
+				)}
+				{!editing && lastChanged && (
+					<p className="mb-2 text-xs text-gray-400 dark:text-gray-500">
+						changed by {lastChanged.actor}
+						{lastChanged.time && <>, {timeAgo(lastChanged.time)}</>}
 					</p>
 				)}
 				{editing ? (
@@ -654,4 +708,15 @@ function formatError(error: unknown): string {
 		return String((error as { message: string }).message);
 	}
 	return "An unexpected error occurred";
+}
+
+function timeAgo(isoTime: string): string {
+	const seconds = Math.floor((Date.now() - new Date(isoTime).getTime()) / 1000);
+	if (seconds < 60) return "just now";
+	const minutes = Math.floor(seconds / 60);
+	if (minutes < 60) return `${minutes}m ago`;
+	const hours = Math.floor(minutes / 60);
+	if (hours < 24) return `${hours}h ago`;
+	const days = Math.floor(hours / 24);
+	return `${days}d ago`;
 }
