@@ -13,7 +13,8 @@
 		"test": "vitest run",
 		"test:coverage": "vitest run --coverage",
 		"generate": "swagger2openapi openapi.json -o openapi3.json && openapi-typescript openapi3.json -o src/api/schema.d.ts",
-		"screenshots": "tsx scripts/screenshots.ts"
+		"screenshots": "tsx scripts/screenshots.ts",
+		"pre-commit": "biome check src/ && tsc -b --noEmit && vitest run && npm run build"
 	},
 	"dependencies": {
 		"@tanstack/react-query": "^5.99.0",
