@@ -10,7 +10,7 @@ interface RuntimeConfig {
 }
 
 const runtime: RuntimeConfig =
-	(globalThis as Record<string, unknown>).__DECREE_UI_CONFIG__ as RuntimeConfig ?? {};
+	((globalThis as Record<string, unknown>).__DECREE_UI_CONFIG__ as RuntimeConfig) ?? {};
 
 /** App configuration — runtime (Docker) values take precedence over build-time (Vite) values. */
 export const config = {
