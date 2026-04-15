@@ -26,6 +26,7 @@ EXPOSE 80
 
 # Runtime env vars (overridable)
 ENV API_URL="http://localhost:8080"
+ENV BROWSER_API_URL=""
 ENV LAYOUT_MODE="full"
 ENV TENANT_ID=""
 ENV SCHEMA_ID=""
