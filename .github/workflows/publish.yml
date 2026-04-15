@@ -16,10 +16,25 @@ env:
   IMAGE: ghcr.io/${{ github.repository_owner }}/decree-ui
 
 jobs:
+  # CI already runs on every PR. For tag releases, run it again as a gate.
+  # For main branch pushes, skip — the PR CI already validated.
   test:
     name: Validate
     if: github.ref_type == 'tag'
-    uses: ./.github/workflows/ci.yml
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
 
   publish:
     name: Build and push image
