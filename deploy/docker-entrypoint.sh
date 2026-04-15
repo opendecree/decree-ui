@@ -9,10 +9,15 @@ set -e
 
 CONFIG_DIR="/usr/share/nginx/html"
 
-# Build a runtime config object from environment variables
+# BROWSER_API_URL is what the browser uses for API calls.
+# Default: empty = same origin (browser hits nginx, nginx proxies to API_URL).
+# Only set BROWSER_API_URL if the browser should call the API directly (e.g., no proxy).
+#
+# API_URL is used by nginx for reverse proxying /v1/ requests (Docker-internal hostname).
+
 cat > "$CONFIG_DIR/config.js" <<EOF
 window.__DECREE_UI_CONFIG__ = {
-  apiUrl: "${API_URL}",
+  apiUrl: "${BROWSER_API_URL}",
   layoutMode: "${LAYOUT_MODE:-full}",
   tenantId: "${TENANT_ID}",
   schemaId: "${SCHEMA_ID}"
