@@ -9,6 +9,8 @@ interface RuntimeConfig {
 	schemaId?: string;
 	defaultRole?: string;
 	defaultSubject?: string;
+	logoUrl?: string;
+	appName?: string;
 }
 
 const runtime: RuntimeConfig =
@@ -33,4 +35,10 @@ export const config = {
 
 	/** Default subject for auth headers. Empty = "admin" (see constants.ts). */
 	defaultSubject: runtime.defaultSubject || import.meta.env.VITE_DEFAULT_SUBJECT || "",
+
+	/** Logo URL. Empty = default OpenDecree favicon. */
+	logoUrl: runtime.logoUrl || import.meta.env.VITE_LOGO_URL || "",
+
+	/** App name override. Empty = uses labels.json "app.name". */
+	appName: runtime.appName || import.meta.env.VITE_APP_NAME || "",
 } as const;
