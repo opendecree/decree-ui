@@ -22,6 +22,8 @@ window.__DECREE_UI_CONFIG__ = {
   tenantId: "${TENANT_ID}",
   schemaId: "${SCHEMA_ID}",
   defaultRole: "${DEFAULT_ROLE}",
-  defaultSubject: "${DEFAULT_SUBJECT}"
+  defaultSubject: "${DEFAULT_SUBJECT}",
+  logoUrl: "${LOGO_URL}",
+  appName: "${APP_NAME}"
 };
 EOF

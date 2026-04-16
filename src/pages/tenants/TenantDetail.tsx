@@ -13,6 +13,7 @@ import { PendingChangesBar } from "../../components/PendingChangesBar";
 import { SlideOver } from "../../components/SlideOver";
 import { TypedInput } from "../../components/TypedInput";
 import { useAuth } from "../../lib/auth";
+import { config as appConfig } from "../../lib/config";
 import { fieldTypeColor, fieldTypeIcon, fieldTypeLabel } from "../../lib/field-types";
 import { groupFields } from "../../lib/fields";
 import {
@@ -259,11 +260,13 @@ export function TenantDetail() {
 
 	return (
 		<div className={editing && pendingChanges.size > 0 ? "pb-24" : ""}>
-			<div className="mb-6">
-				<Link to="/tenants" className="text-sm text-blue-600 hover:underline dark:text-blue-400">
-					&larr; {label("common.back")} to {label("tenant.plural").toLowerCase()}
-				</Link>
-			</div>
+			{appConfig.layoutMode !== "single-tenant" && (
+				<div className="mb-6">
+					<Link to="/tenants" className="text-sm text-blue-600 hover:underline dark:text-blue-400">
+						&larr; {label("common.back")} to {label("tenant.plural").toLowerCase()}
+					</Link>
+				</div>
+			)}
 
 			{isLoading && <p className="text-gray-500 dark:text-gray-400">{label("common.loading")}</p>}
 			{tenantError && (
@@ -277,16 +280,22 @@ export function TenantDetail() {
 							<h2 className="text-xl font-semibold">{tenant.name}</h2>
 							<p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
 								{schema ? (
-									<>
-										<Link
-											to={`/schemas/${tenant.schemaId}`}
-											className="text-blue-600 hover:underline dark:text-blue-400"
-										>
-											{schema.name}
-										</Link>
-										{" v"}
-										{tenant.schemaVersion}
-									</>
+									appConfig.layoutMode === "single-tenant" ? (
+										<>
+											{schema.name} v{tenant.schemaVersion}
+										</>
+									) : (
+										<>
+											<Link
+												to={`/schemas/${tenant.schemaId}`}
+												className="text-blue-600 hover:underline dark:text-blue-400"
+											>
+												{schema.name}
+											</Link>
+											{" v"}
+											{tenant.schemaVersion}
+										</>
+									)
 								) : (
 									<>Schema v{tenant.schemaVersion}</>
 								)}
@@ -294,25 +303,30 @@ export function TenantDetail() {
 							</p>
 						</div>
 						<div className="flex gap-2">
-							<button
-								type="button"
-								onClick={() => setShowHistory(true)}
-								className="rounded border border-gray-300 px-4 py-2 text-sm font-medium hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800"
-							>
-								{label("config.history")}
-							</button>
-							<Link
-								to={`/tenants/${tid}/audit`}
-								className="rounded border border-gray-300 px-4 py-2 text-sm font-medium hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800"
-							>
-								Audit Log
-							</Link>
-							<Link
-								to={`/tenants/${tid}/usage`}
-								className="rounded border border-gray-300 px-4 py-2 text-sm font-medium hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800"
-							>
-								Usage
-							</Link>
+							{/* Navigation buttons — hidden in single-tenant mode (sidebar handles nav) */}
+							{appConfig.layoutMode !== "single-tenant" && (
+								<>
+									<button
+										type="button"
+										onClick={() => setShowHistory(true)}
+										className="rounded border border-gray-300 px-4 py-2 text-sm font-medium hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800"
+									>
+										{label("config.history")}
+									</button>
+									<Link
+										to={`/tenants/${tid}/audit`}
+										className="rounded border border-gray-300 px-4 py-2 text-sm font-medium hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800"
+									>
+										Audit Log
+									</Link>
+									<Link
+										to={`/tenants/${tid}/usage`}
+										className="rounded border border-gray-300 px-4 py-2 text-sm font-medium hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800"
+									>
+										Usage
+									</Link>
+								</>
+							)}
 							{canEditConfig(auth.role) &&
 								(!editing ? (
 									<button
@@ -331,7 +345,8 @@ export function TenantDetail() {
 										{label("config.cancelEdit")}
 									</button>
 								))}
-							{canManageTenants(auth.role) &&
+							{appConfig.layoutMode !== "single-tenant" &&
+								canManageTenants(auth.role) &&
 								(!showDeleteConfirm ? (
 									<button
 										type="button"
