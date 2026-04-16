@@ -20,6 +20,8 @@ window.__DECREE_UI_CONFIG__ = {
   apiUrl: "${BROWSER_API_URL}",
   layoutMode: "${LAYOUT_MODE:-full}",
   tenantId: "${TENANT_ID}",
-  schemaId: "${SCHEMA_ID}"
+  schemaId: "${SCHEMA_ID}",
+  defaultRole: "${DEFAULT_ROLE}",
+  defaultSubject: "${DEFAULT_SUBJECT}"
 };
 EOF
