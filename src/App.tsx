@@ -14,6 +14,7 @@ import { SchemaList } from "./pages/schemas/SchemaList";
 import { TenantAudit } from "./pages/tenants/TenantAudit";
 import { TenantCreate } from "./pages/tenants/TenantCreate";
 import { TenantDetail } from "./pages/tenants/TenantDetail";
+import { TenantHistory } from "./pages/tenants/TenantHistory";
 import { TenantList } from "./pages/tenants/TenantList";
 import { TenantUsage } from "./pages/tenants/TenantUsage";
 
@@ -55,6 +56,7 @@ export function App() {
 						<Route path="tenants" element={<TenantList />} />
 						<Route path="tenants/create" element={<TenantCreate />} />
 						<Route path="tenants/:id" element={<TenantDetail />} />
+						<Route path="tenants/:id/history" element={<TenantHistory />} />
 						<Route path="tenants/:id/audit" element={<TenantAudit />} />
 						<Route path="tenants/:id/usage" element={<TenantUsage />} />
 						<Route path="*" element={<NotFound />} />

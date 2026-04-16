@@ -10,6 +10,7 @@ import { DarkModeToggle } from "./DarkModeToggle";
 export function Layout() {
 	const { auth } = useAuth();
 
+	const isSingleTenant = config.layoutMode === "single-tenant";
 	const isSuperadmin = auth.role === "superadmin";
 	const showSchemas = config.layoutMode === "full" && canManageSchemas(auth.role);
 	const showTenants =
@@ -17,6 +18,9 @@ export function Layout() {
 
 	// Non-superadmin with a tenant set — show direct link to their tenant
 	const hasTenantScope = !isSuperadmin && auth.tenantId;
+
+	// In single-tenant mode, build contextual nav around the tenant
+	const tenantPath = auth.tenantId ? `/tenants/${auth.tenantId}` : "/";
 
 	return (
 		<div className="flex h-screen">
@@ -26,12 +30,38 @@ export function Layout() {
 					<h1 className="text-lg font-semibold">{label("app.name")}</h1>
 				</div>
 				<div className="flex flex-1 flex-col gap-1 p-3">
-					<SidebarLink to="/" label={label("nav.home")} />
-					{showSchemas && <SidebarLink to="/schemas" label={label("nav.schemas")} />}
-					{showTenants && <SidebarLink to="/tenants" label={label("nav.tenants")} />}
-					{hasTenantScope && (
-						<SidebarLink to={`/tenants/${auth.tenantId}`} label={label("nav.myConfig")} />
+					{isSingleTenant ? (
+						<>
+							<SidebarLink to={tenantPath} label={label("nav.config")} />
+							<SidebarLink to={`${tenantPath}/history`} label={label("nav.history")} />
+							<SidebarLink to={`${tenantPath}/audit`} label={label("nav.auditLog")} />
+							<SidebarLink to={`${tenantPath}/usage`} label={label("nav.usage")} />
+						</>
+					) : (
+						<>
+							<SidebarLink to="/" label={label("nav.home")} />
+							{showSchemas && <SidebarLink to="/schemas" label={label("nav.schemas")} />}
+							{showTenants && <SidebarLink to="/tenants" label={label("nav.tenants")} />}
+							{hasTenantScope && (
+								<SidebarLink to={`/tenants/${auth.tenantId}`} label={label("nav.myConfig")} />
+							)}
+						</>
 					)}
+				</div>
+
+				{/* Footer */}
+				<div className="border-t border-gray-200 p-3 dark:border-gray-800">
+					<p className="text-[11px] text-gray-400 dark:text-gray-600">
+						Powered by{" "}
+						<a
+							href="https://github.com/opendecree/decree"
+							target="_blank"
+							rel="noopener noreferrer"
+							className="hover:text-gray-600 hover:underline dark:hover:text-gray-400"
+						>
+							OpenDecree
+						</a>
+					</p>
 				</div>
 			</nav>
 
