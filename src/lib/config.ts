@@ -7,6 +7,8 @@ interface RuntimeConfig {
 	layoutMode?: string;
 	tenantId?: string;
 	schemaId?: string;
+	defaultRole?: string;
+	defaultSubject?: string;
 }
 
 const runtime: RuntimeConfig =
@@ -25,4 +27,10 @@ export const config = {
 
 	/** Pre-selected schema ID for single-schema mode. */
 	schemaId: runtime.schemaId || (import.meta.env.VITE_SCHEMA_ID as string | undefined),
+
+	/** Default role for auth headers. */
+	defaultRole: runtime.defaultRole || import.meta.env.VITE_DEFAULT_ROLE || "",
+
+	/** Default subject for auth headers. */
+	defaultSubject: runtime.defaultSubject || import.meta.env.VITE_DEFAULT_SUBJECT || "",
 } as const;
