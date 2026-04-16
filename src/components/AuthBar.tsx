@@ -14,7 +14,10 @@ export function AuthBar() {
 	const needsTenant = auth.role !== "superadmin";
 
 	return (
-		<div className="flex items-center gap-3 text-sm">
+		<div className="flex items-center gap-3 rounded border border-dashed border-amber-500/40 bg-amber-500/5 px-3 py-1.5 text-sm">
+			<span className="font-mono text-[10px] font-semibold uppercase tracking-wider text-amber-600 dark:text-amber-400">
+				Debug
+			</span>
 			<label className="flex items-center gap-1.5">
 				<span className="text-gray-500 dark:text-gray-400">{label("auth.subject")}</span>
 				<input
