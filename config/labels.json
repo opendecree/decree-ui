@@ -6,6 +6,10 @@
 	"nav.schemas": "Schemas",
 	"nav.tenants": "Tenants",
 	"nav.myConfig": "My Config",
+	"nav.config": "Configuration",
+	"nav.history": "History",
+	"nav.auditLog": "Audit Log",
+	"nav.usage": "Usage",
 
 	"schema.singular": "Schema",
 	"schema.plural": "Schemas",

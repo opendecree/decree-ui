@@ -40,3 +40,7 @@ ENV DEFAULT_ROLE=""
 # Default auth role: superadmin, admin, user. Empty = superadmin.
 ENV DEFAULT_SUBJECT=""
 # Default auth subject identity. Empty = "admin".
+ENV LOGO_URL=""
+# Custom logo URL. Empty = default OpenDecree logo.
+ENV APP_NAME=""
+# Custom app name in sidebar header. Empty = "OpenDecree" (from labels.json).

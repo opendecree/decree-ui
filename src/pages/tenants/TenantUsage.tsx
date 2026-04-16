@@ -1,4 +1,5 @@
 import { Link, useParams } from "react-router-dom";
+import { config } from "../../lib/config";
 import { useTenant, useTenantUsage } from "../../lib/hooks";
 import { label } from "../../lib/labels";
 
@@ -22,14 +23,16 @@ export function TenantUsage() {
 
 	return (
 		<div>
-			<div className="mb-6">
-				<Link
-					to={`/tenants/${tid}`}
-					className="text-sm text-blue-600 hover:underline dark:text-blue-400"
-				>
-					&larr; {label("common.back")} to {tenant?.name ?? "tenant"}
-				</Link>
-			</div>
+			{config.layoutMode !== "single-tenant" && (
+				<div className="mb-6">
+					<Link
+						to={`/tenants/${tid}`}
+						className="text-sm text-blue-600 hover:underline dark:text-blue-400"
+					>
+						&larr; {label("common.back")} to {tenant?.name ?? "tenant"}
+					</Link>
+				</div>
+			)}
 
 			<h2 className="mb-4 text-xl font-semibold">Usage Stats — {tenant?.name}</h2>
 
