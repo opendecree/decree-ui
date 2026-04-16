@@ -28,9 +28,9 @@ export const config = {
 	/** Pre-selected schema ID for single-schema mode. */
 	schemaId: runtime.schemaId || (import.meta.env.VITE_SCHEMA_ID as string | undefined),
 
-	/** Default role for auth headers. */
+	/** Default role for auth headers. Empty = superadmin (see constants.ts). */
 	defaultRole: runtime.defaultRole || import.meta.env.VITE_DEFAULT_ROLE || "",
 
-	/** Default subject for auth headers. */
+	/** Default subject for auth headers. Empty = "admin" (see constants.ts). */
 	defaultSubject: runtime.defaultSubject || import.meta.env.VITE_DEFAULT_SUBJECT || "",
 } as const;
