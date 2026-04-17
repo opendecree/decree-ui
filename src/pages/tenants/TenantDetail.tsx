@@ -218,6 +218,7 @@ export function TenantDetail() {
 			setApplyError(null);
 			setEditing(false);
 			queryClient.invalidateQueries({ queryKey: ["config", tid] });
+			queryClient.invalidateQueries({ queryKey: ["versions", tid] });
 		},
 		onError: (err: Error) => setApplyError(err.message),
 	});
