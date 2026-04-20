@@ -1,54 +1,87 @@
 /**
- * Take screenshots of all pages for visual review.
+ * Take screenshots of all pages for visual review and docs.
  *
  * Prerequisites:
  *   - Dev server running: npm run dev
- *   - Backend running with fixtures loaded
+ *   - Backend running at API_URL (default http://localhost:8080)
+ *   - Backend seeded with the decree fixtures (see decree/fixtures/)
  *
  * Usage:
  *   npx tsx scripts/screenshots.ts
  *
- * Output: screenshots/ directory with PNG files.
+ * Environment:
+ *   BASE_URL   UI dev server URL        (default http://localhost:5174)
+ *   API_URL    decree backend URL       (default http://localhost:8080)
+ *   OUT_DIR    output directory         (default docs/screenshots)
+ *
+ * Output: PNG files named <mode>-<page>.png (light + dark).
  */
 
 import { chromium } from "@playwright/test";
 import { existsSync, mkdirSync } from "node:fs";
 
 const BASE_URL = process.env.BASE_URL ?? "http://localhost:5174";
-const OUT_DIR = "screenshots";
+const API_URL = process.env.API_URL ?? "http://localhost:8080";
+const OUT_DIR = process.env.OUT_DIR ?? "docs/screenshots";
 
-// IDs from fixtures — update if you reseed.
-const SCHEMA_BILLING = "5c66e344-6d24-4182-a632-052c8383bbd0";
-const SCHEMA_SHOWCASE = "3449dec3-ca10-4ef5-b4b4-b55afbbfd3c1";
-const TENANT_ACME = "7593edc7-d109-45d5-a6df-057365e2b0f2";
-const TENANT_DEMO = "90695376-db8e-4804-9b51-bd812e04bd71";
-const TENANT_BLANK = "a4037ec8-53dc-48f9-bdac-3bd2ab1e90f7";
+const AUTH_HEADERS = { "x-subject": "admin", "x-role": "superadmin" };
 
-interface Page {
+interface Named {
+	id?: string;
+	name?: string;
+}
+
+async function fetchNameMap(path: string, key: "schemas" | "tenants"): Promise<Map<string, string>> {
+	const res = await fetch(`${API_URL}${path}`, { headers: AUTH_HEADERS });
+	if (!res.ok) throw new Error(`GET ${path} failed: ${res.status} ${res.statusText}`);
+	const body = (await res.json()) as Record<string, Named[]>;
+	const items = body[key] ?? [];
+	return new Map(items.filter((i) => i.id && i.name).map((i) => [i.name as string, i.id as string]));
+}
+
+interface ScreenshotPage {
 	name: string;
 	path: string;
 	/** Extra wait time in ms for async data to load. */
 	wait?: number;
 }
 
-const pages: Page[] = [
-	{ name: "home", path: "/" },
-	{ name: "schemas", path: "/schemas" },
-	{ name: "schema-billing", path: `/schemas/${SCHEMA_BILLING}`, wait: 500 },
-	{ name: "schema-showcase", path: `/schemas/${SCHEMA_SHOWCASE}`, wait: 500 },
-	{ name: "schema-import", path: "/schemas/import" },
-	{ name: "tenants", path: "/tenants" },
-	{ name: "tenant-demo", path: `/tenants/${TENANT_DEMO}`, wait: 500 },
-	{ name: "tenant-acme", path: `/tenants/${TENANT_ACME}`, wait: 500 },
-	{ name: "tenant-create", path: "/tenants/create", wait: 500 },
-	{ name: "audit-demo", path: `/tenants/${TENANT_DEMO}/audit`, wait: 500 },
-	{ name: "usage-demo", path: `/tenants/${TENANT_DEMO}/usage`, wait: 500 },
-];
+function buildPages(schemas: Map<string, string>, tenants: Map<string, string>): ScreenshotPage[] {
+	const need = (map: Map<string, string>, name: string, kind: string): string => {
+		const id = map.get(name);
+		if (!id) throw new Error(`${kind} "${name}" not found — seed fixtures first (see decree/fixtures/)`);
+		return id;
+	};
+
+	const billing = need(schemas, "billing", "schema");
+	const showcase = need(schemas, "showcase", "schema");
+	const acme = need(tenants, "acme", "tenant");
+	const demo = need(tenants, "demo", "tenant");
+
+	return [
+		{ name: "home", path: "/" },
+		{ name: "schemas", path: "/schemas" },
+		{ name: "schema-billing", path: `/schemas/${billing}`, wait: 500 },
+		{ name: "schema-showcase", path: `/schemas/${showcase}`, wait: 500 },
+		{ name: "schema-import", path: "/schemas/import" },
+		{ name: "tenants", path: "/tenants" },
+		{ name: "tenant-demo", path: `/tenants/${demo}`, wait: 500 },
+		{ name: "tenant-acme", path: `/tenants/${acme}`, wait: 500 },
+		{ name: "tenant-create", path: "/tenants/create", wait: 500 },
+		{ name: "audit-demo", path: `/tenants/${demo}/audit`, wait: 500 },
+		{ name: "usage-demo", path: `/tenants/${demo}/usage`, wait: 500 },
+	];
+}
 
 async function main() {
-	if (!existsSync(OUT_DIR)) {
-		mkdirSync(OUT_DIR, { recursive: true });
-	}
+	if (!existsSync(OUT_DIR)) mkdirSync(OUT_DIR, { recursive: true });
+
+	console.log(`Looking up fixtures at ${API_URL} …`);
+	const [schemas, tenants] = await Promise.all([
+		fetchNameMap("/v1/schemas", "schemas"),
+		fetchNameMap("/v1/tenants", "tenants"),
+	]);
+	const pages = buildPages(schemas, tenants);
 
 	const browser = await chromium.launch();
 
@@ -58,37 +91,19 @@ async function main() {
 			colorScheme: mode,
 		});
 
-		// Set auth in localStorage before navigating.
-		await context.addInitScript(() => {
+		await context.addInitScript((dark: boolean) => {
 			localStorage.setItem("decree-auth", JSON.stringify({ subject: "admin", role: "superadmin" }));
-		});
-
-		// For dark mode, also set the preference.
-		if (mode === "dark") {
-			await context.addInitScript(() => {
-				localStorage.setItem("decree-dark-mode", "true");
-			});
-		} else {
-			await context.addInitScript(() => {
-				localStorage.setItem("decree-dark-mode", "false");
-			});
-		}
+			localStorage.setItem("decree-dark-mode", String(dark));
+		}, mode === "dark");
 
 		const page = await context.newPage();
 
 		for (const p of pages) {
 			const url = `${BASE_URL}${p.path}`;
 			console.log(`${mode}/${p.name}: ${url}`);
-
 			await page.goto(url, { waitUntil: "networkidle" });
-			if (p.wait) {
-				await page.waitForTimeout(p.wait);
-			}
-
-			await page.screenshot({
-				path: `${OUT_DIR}/${mode}-${p.name}.png`,
-				fullPage: true,
-			});
+			if (p.wait) await page.waitForTimeout(p.wait);
+			await page.screenshot({ path: `${OUT_DIR}/${mode}-${p.name}.png`, fullPage: true });
 		}
 
 		await context.close();
@@ -98,4 +113,7 @@ async function main() {
 	console.log(`\nScreenshots saved to ${OUT_DIR}/`);
 }
 
-main().catch(console.error);
+main().catch((err) => {
+	console.error(err);
+	process.exit(1);
+});
