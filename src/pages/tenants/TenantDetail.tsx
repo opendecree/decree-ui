@@ -260,7 +260,10 @@ export function TenantDetail() {
 	const isLoading = tenantLoading || schemaLoading || configLoading;
 
 	return (
-		<div className={editing && pendingChanges.size > 0 ? "pb-24" : ""}>
+		<div
+			className={editing && pendingChanges.size > 0 ? "pb-24" : ""}
+			data-testid="tenant-detail-page"
+		>
 			{appConfig.layoutMode !== "single-tenant" && (
 				<div className="mb-6">
 					<Link to="/tenants" className="text-sm text-blue-600 hover:underline dark:text-blue-400">

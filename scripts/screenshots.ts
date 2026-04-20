@@ -42,7 +42,9 @@ async function fetchNameMap(path: string, key: "schemas" | "tenants"): Promise<M
 interface ScreenshotPage {
 	name: string;
 	path: string;
-	/** Extra wait time in ms for async data to load. */
+	/** data-testid on the page root — waited for before snapping. */
+	testId?: string;
+	/** Extra wait time in ms for async data to settle after the testid appears. */
 	wait?: number;
 }
 
@@ -59,14 +61,14 @@ function buildPages(schemas: Map<string, string>, tenants: Map<string, string>):
 	const demo = need(tenants, "demo", "tenant");
 
 	return [
-		{ name: "home", path: "/" },
-		{ name: "schemas", path: "/schemas" },
-		{ name: "schema-billing", path: `/schemas/${billing}`, wait: 500 },
-		{ name: "schema-showcase", path: `/schemas/${showcase}`, wait: 500 },
+		{ name: "home", path: "/", testId: "home-page" },
+		{ name: "schemas", path: "/schemas", testId: "schema-list-page" },
+		{ name: "schema-billing", path: `/schemas/${billing}`, testId: "schema-detail-page", wait: 300 },
+		{ name: "schema-showcase", path: `/schemas/${showcase}`, testId: "schema-detail-page", wait: 300 },
 		{ name: "schema-import", path: "/schemas/import" },
-		{ name: "tenants", path: "/tenants" },
-		{ name: "tenant-demo", path: `/tenants/${demo}`, wait: 500 },
-		{ name: "tenant-acme", path: `/tenants/${acme}`, wait: 500 },
+		{ name: "tenants", path: "/tenants", testId: "tenant-list-page" },
+		{ name: "tenant-demo", path: `/tenants/${demo}`, testId: "tenant-detail-page", wait: 300 },
+		{ name: "tenant-acme", path: `/tenants/${acme}`, testId: "tenant-detail-page", wait: 300 },
 		{ name: "tenant-create", path: "/tenants/create", wait: 500 },
 		{ name: "audit-demo", path: `/tenants/${demo}/audit`, wait: 500 },
 		{ name: "usage-demo", path: `/tenants/${demo}/usage`, wait: 500 },
@@ -102,6 +104,7 @@ async function main() {
 			const url = `${BASE_URL}${p.path}`;
 			console.log(`${mode}/${p.name}: ${url}`);
 			await page.goto(url, { waitUntil: "networkidle" });
+			if (p.testId) await page.getByTestId(p.testId).waitFor({ state: "visible" });
 			if (p.wait) await page.waitForTimeout(p.wait);
 			await page.screenshot({ path: `${OUT_DIR}/${mode}-${p.name}.png`, fullPage: true });
 		}
