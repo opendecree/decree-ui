@@ -13,7 +13,6 @@ dist-ssr
 *.local
 openapi3.json
 coverage
-screenshots/
 
 # Editor directories and files
 .vscode/*
