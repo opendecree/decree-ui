@@ -17,7 +17,7 @@ export function Home() {
 	});
 
 	return (
-		<div className="mx-auto max-w-2xl">
+		<div className="mx-auto max-w-2xl" data-testid="home-page">
 			<h2 className="mb-6 text-2xl font-semibold">{label("app.title")}</h2>
 
 			{version && (

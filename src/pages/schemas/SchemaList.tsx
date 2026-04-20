@@ -17,7 +17,7 @@ export function SchemaList() {
 		: schemas;
 
 	return (
-		<div>
+		<div data-testid="schema-list-page">
 			<div className="mb-6 flex items-center justify-between">
 				<h2 className="text-xl font-semibold">{label("schema.plural")}</h2>
 				{canManageSchemas(auth.role) && (
