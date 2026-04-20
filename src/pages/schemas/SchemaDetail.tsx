@@ -65,7 +65,7 @@ export function SchemaDetail() {
 	};
 
 	return (
-		<div>
+		<div data-testid="schema-detail-page">
 			<div className="mb-6">
 				<Link to="/schemas" className="text-sm text-blue-600 hover:underline dark:text-blue-400">
 					&larr; {label("common.back")} to {label("schema.plural").toLowerCase()}

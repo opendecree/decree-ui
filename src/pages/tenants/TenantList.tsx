@@ -26,7 +26,7 @@ export function TenantList() {
 		: tenants;
 
 	return (
-		<div>
+		<div data-testid="tenant-list-page">
 			<div className="mb-6 flex items-center justify-between">
 				<h2 className="text-xl font-semibold">{label("tenant.plural")}</h2>
 				{canManageTenants(auth.role) && (

@@ -28,9 +28,13 @@ PNGs land in this directory — one per page, per color scheme (`light-*` and `d
 
 ## Contract
 
-The script looks up fixture IDs by `name` via `GET /v1/schemas` and `GET /v1/tenants`, so the
-committed fixture names (`billing`, `showcase`, `acme`, `demo`) must stay stable. Renaming a
-fixture means updating `scripts/screenshots.ts` in the same change.
+Two things the script depends on — don't break them without updating `scripts/screenshots.ts`:
+
+1. **Fixture names** (`billing`, `showcase`, `acme`, `demo`) — resolved to UUIDs via `GET /v1/schemas`
+   and `GET /v1/tenants`. Names are stable across seed runs; UUIDs are not.
+2. **Page root `data-testid` anchors** — used to wait for the page to render before snapping, so
+   screenshots don't capture loading spinners. Anchors in use:
+   - `home-page`, `schema-list-page`, `schema-detail-page`, `tenant-list-page`, `tenant-detail-page`
 
 ## Environment
 
