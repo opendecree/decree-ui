@@ -90,6 +90,10 @@ React 19, Vite, React Router, TanStack Query, Tailwind CSS, Biome, Vitest.
 
 API types auto-generated from the OpenAPI spec via `openapi-typescript`.
 
+## Questions?
+
+Head to [OpenDecree Discussions](https://github.com/orgs/opendecree/discussions) — our community hub covers all OpenDecree repos.
+
 ## License
 
 Apache License 2.0 — see [LICENSE](LICENSE).
