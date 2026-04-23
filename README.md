@@ -2,6 +2,7 @@
 
 [![CI](https://github.com/opendecree/decree-ui/actions/workflows/ci.yml/badge.svg)](https://github.com/opendecree/decree-ui/actions/workflows/ci.yml)
 [![License](https://img.shields.io/github/license/opendecree/decree-ui)](LICENSE)
+[![Project Status: WIP](https://www.repostatus.org/badges/latest/wip.svg)](https://www.repostatus.org/#wip)
 
 Web-based admin interface for [OpenDecree](https://github.com/opendecree/decree) — schema-driven configuration management.
 
