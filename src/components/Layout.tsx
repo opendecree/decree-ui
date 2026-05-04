@@ -133,6 +133,7 @@ export function Layout() {
 	const hasTenantScope = !isSuperadmin && auth.tenantId;
 	const tenantPath = auth.tenantId ? `/tenants/${auth.tenantId}` : "/";
 
+	const showAuthBar = import.meta.env.VITE_HIDE_DEBUG !== "1";
 	const appName = config.appName || label("app.name");
 	const logoSrc = config.logoUrl || "/logo.svg";
 
@@ -204,7 +205,7 @@ export function Layout() {
 			<div className="flex flex-1 flex-col overflow-hidden">
 				{/* Header */}
 				<header className="flex items-center justify-between border-b border-gray-200 px-6 py-3 dark:border-gray-800">
-					<AuthBar />
+					{showAuthBar ? <AuthBar /> : <div className="flex-1" />}
 					<DarkModeToggle />
 				</header>
 
