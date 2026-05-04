@@ -204,7 +204,7 @@ export function Layout() {
 			<div className="flex flex-1 flex-col overflow-hidden">
 				{/* Header */}
 				<header className="flex items-center justify-between border-b border-gray-200 px-6 py-3 dark:border-gray-800">
-					<AuthBar />
+					{!import.meta.env.VITE_HIDE_DEBUG && <AuthBar />}
 					<DarkModeToggle />
 				</header>
 
