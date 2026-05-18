@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { AuditRow } from "../../components/FieldChanges";
+import { SkeletonTable } from "../../components/Skeleton";
 import { config } from "../../lib/config";
 import { useAuditLog, useTenant } from "../../lib/hooks";
 import { label } from "../../lib/labels";
@@ -58,9 +59,7 @@ export function TenantAudit() {
 				/>
 			</div>
 
-			{isLoading && (
-				<p className="text-sm text-gray-500 dark:text-gray-400">{label("common.loading")}</p>
-			)}
+			{isLoading && <SkeletonTable rows={5} />}
 
 			{!isLoading && entries.length === 0 && (
 				<p className="text-sm text-gray-500 dark:text-gray-400">No audit entries found.</p>

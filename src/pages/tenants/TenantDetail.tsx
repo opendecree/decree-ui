@@ -10,6 +10,7 @@ import {
 	WriteOnceBadge,
 } from "../../components/FieldBadges";
 import { PendingChangesBar } from "../../components/PendingChangesBar";
+import { SkeletonDetail } from "../../components/Skeleton";
 import { SlideOver } from "../../components/SlideOver";
 import { TypedInput } from "../../components/TypedInput";
 import { useAuth } from "../../lib/auth";
@@ -281,7 +282,7 @@ export function TenantDetail() {
 				</div>
 			)}
 
-			{isLoading && <p className="text-gray-500 dark:text-gray-400">{label("common.loading")}</p>}
+			{isLoading && <SkeletonDetail />}
 			{tenantError && (
 				<p className="text-red-600 dark:text-red-400">Error: {tenantError.message}</p>
 			)}

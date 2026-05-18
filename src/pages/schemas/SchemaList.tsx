@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
+import { SkeletonTable } from "../../components/Skeleton";
 import { useAuth } from "../../lib/auth";
 import { useSchemas } from "../../lib/hooks";
 import { label } from "../../lib/labels";
@@ -40,7 +41,7 @@ export function SchemaList() {
 				/>
 			</div>
 
-			{isLoading && <p className="text-gray-500 dark:text-gray-400">Loading schemas...</p>}
+			{isLoading && <SkeletonTable rows={4} />}
 
 			{error && (
 				<p className="text-red-600 dark:text-red-400">Error loading schemas: {error.message}</p>
