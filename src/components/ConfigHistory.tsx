@@ -5,6 +5,7 @@ import type { Role } from "../lib/constants";
 import { useApiClient, useAuditLog, useVersions } from "../lib/hooks";
 import { label } from "../lib/labels";
 import { canEditConfig } from "../lib/permissions";
+import { useToast } from "../lib/toast";
 import { FieldChanges } from "./FieldChanges";
 
 type ConfigVersion = components["schemas"]["v1ConfigVersion"];
@@ -19,10 +20,10 @@ interface ConfigHistoryProps {
 export function ConfigHistory({ tenantId, currentVersion, role }: ConfigHistoryProps) {
 	const client = useApiClient();
 	const queryClient = useQueryClient();
+	const { toast } = useToast();
 	const { data, isLoading } = useVersions(tenantId);
 	const versions = data?.versions ?? [];
 	const [rollbackTarget, setRollbackTarget] = useState<number | null>(null);
-	const [importError, setImportError] = useState<string | null>(null);
 	const fileInputRef = useRef<HTMLInputElement>(null);
 
 	const rollbackMutation = useMutation({
@@ -36,7 +37,9 @@ export function ConfigHistory({ tenantId, currentVersion, role }: ConfigHistoryP
 			setRollbackTarget(null);
 			queryClient.invalidateQueries({ queryKey: ["config", tenantId] });
 			queryClient.invalidateQueries({ queryKey: ["versions", tenantId] });
+			toast.success("Rolled back");
 		},
+		onError: (err: Error) => toast.error(`Rollback failed: ${err.message}`),
 	});
 
 	const handleExport = useCallback(async () => {
@@ -63,11 +66,11 @@ export function ConfigHistory({ tenantId, currentVersion, role }: ConfigHistoryP
 			if (error) throw new Error(formatError(error));
 		},
 		onSuccess: () => {
-			setImportError(null);
+			toast.success("Config imported");
 			queryClient.invalidateQueries({ queryKey: ["config", tenantId] });
 			queryClient.invalidateQueries({ queryKey: ["versions", tenantId] });
 		},
-		onError: (err: Error) => setImportError(err.message),
+		onError: (err: Error) => toast.error(`Import failed: ${err.message}`),
 	});
 
 	const handleImport = useCallback(() => {
@@ -116,10 +119,6 @@ export function ConfigHistory({ tenantId, currentVersion, role }: ConfigHistoryP
 				</div>
 			)}
 
-			{importError && (
-				<p className="mb-3 text-sm text-red-600 dark:text-red-400">Import failed: {importError}</p>
-			)}
-
 			{isLoading && (
 				<p className="text-sm text-gray-500 dark:text-gray-400">{label("common.loading")}</p>
 			)}
@@ -145,12 +144,6 @@ export function ConfigHistory({ tenantId, currentVersion, role }: ConfigHistoryP
 						/>
 					))}
 				</div>
-			)}
-
-			{rollbackMutation.isError && (
-				<p className="mt-2 text-sm text-red-600 dark:text-red-400">
-					Rollback failed: {rollbackMutation.error.message}
-				</p>
 			)}
 		</div>
 	);

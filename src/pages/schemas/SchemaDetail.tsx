@@ -15,6 +15,7 @@ import { useApiClient, useSchema } from "../../lib/hooks";
 import { CHEVRON_DOWN, CHEVRON_RIGHT } from "../../lib/icons";
 import { label } from "../../lib/labels";
 import { canManageSchemas } from "../../lib/permissions";
+import { useToast } from "../../lib/toast";
 
 type SchemaField = components["schemas"]["v1SchemaField"];
 type FieldConstraints = components["schemas"]["v1FieldConstraints"];
@@ -27,6 +28,7 @@ export function SchemaDetail() {
 	const { data, isLoading, error } = useSchema(id ?? "");
 	const client = useApiClient();
 	const queryClient = useQueryClient();
+	const { toast } = useToast();
 
 	const schema = data?.schema;
 	const schemaId = id ?? "";
@@ -41,9 +43,11 @@ export function SchemaDetail() {
 			return result;
 		},
 		onSuccess: () => {
+			toast.success("Schema published");
 			queryClient.invalidateQueries({ queryKey: ["schemas", id] });
 			queryClient.invalidateQueries({ queryKey: ["schemas"] });
 		},
+		onError: (err: Error) => toast.error(`Publish failed: ${err.message}`),
 	});
 
 	const handleExport = async () => {
@@ -51,7 +55,7 @@ export function SchemaDetail() {
 			params: { path: { id: schemaId } },
 		});
 		if (err) {
-			alert(`Export failed: ${formatError(err)}`);
+			toast.error(`Export failed: ${formatError(err)}`);
 			return;
 		}
 		const yaml = result?.yamlContent ?? "";
@@ -105,12 +109,6 @@ export function SchemaDetail() {
 							</button>
 						</div>
 					</div>
-
-					{publishMutation.isError && (
-						<p className="mb-4 text-red-600 dark:text-red-400">
-							Publish failed: {publishMutation.error.message}
-						</p>
-					)}
 
 					<div className="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-3">
 						<InfoCard label="Version" value={`v${schema.version}`} />

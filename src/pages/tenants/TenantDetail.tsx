@@ -26,6 +26,7 @@ import {
 } from "../../lib/hooks";
 import { label } from "../../lib/labels";
 import { canEditConfig, canManageLocks, canManageTenants } from "../../lib/permissions";
+import { useToast } from "../../lib/toast";
 
 type SchemaField = components["schemas"]["v1SchemaField"];
 type TypedValue = components["schemas"]["v1TypedValue"];
@@ -74,6 +75,7 @@ export function TenantDetail() {
 	const client = useApiClient();
 	const queryClient = useQueryClient();
 
+	const { toast } = useToast();
 	const { data: tenantData, isLoading: tenantLoading, error: tenantError } = useTenant(tid);
 	const tenant = tenantData?.tenant;
 
@@ -94,7 +96,6 @@ export function TenantDetail() {
 	const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 	const [pendingChanges, setPendingChanges] = useState<Map<string, string>>(new Map());
 	const [description, setDescription] = useState("");
-	const [applyError, setApplyError] = useState<string | null>(null);
 
 	const fields = schema?.fields ?? [];
 	const configValues = config?.values ?? [];
@@ -172,7 +173,6 @@ export function TenantDetail() {
 				else next.set(path, value);
 				return next;
 			});
-			setApplyError(null);
 		},
 		[serverValueMap],
 	);
@@ -188,7 +188,6 @@ export function TenantDetail() {
 	const handleResetAll = useCallback(() => {
 		setPendingChanges(new Map());
 		setDescription("");
-		setApplyError(null);
 	}, []);
 
 	const handleCancelEdit = useCallback(() => {
@@ -213,14 +212,14 @@ export function TenantDetail() {
 			if (err) throw new Error(formatError(err));
 		},
 		onSuccess: () => {
+			toast.success("Config saved");
 			setPendingChanges(new Map());
 			setDescription("");
-			setApplyError(null);
 			setEditing(false);
 			queryClient.invalidateQueries({ queryKey: ["config", tid] });
 			queryClient.invalidateQueries({ queryKey: ["versions", tid] });
 		},
-		onError: (err: Error) => setApplyError(err.message),
+		onError: (err: Error) => toast.error(err.message),
 	});
 
 	const deleteMutation = useMutation({
@@ -231,9 +230,11 @@ export function TenantDetail() {
 			if (err) throw new Error(formatError(err));
 		},
 		onSuccess: () => {
+			toast.success("Tenant deleted");
 			queryClient.invalidateQueries({ queryKey: ["tenants"] });
 			navigate("/tenants");
 		},
+		onError: (err: Error) => toast.error(`Delete failed: ${err.message}`),
 	});
 
 	const lockMutation = useMutation({
@@ -244,7 +245,11 @@ export function TenantDetail() {
 			});
 			if (err) throw new Error(formatError(err));
 		},
-		onSuccess: () => queryClient.invalidateQueries({ queryKey: ["locks", tid] }),
+		onSuccess: () => {
+			toast.success("Field locked");
+			queryClient.invalidateQueries({ queryKey: ["locks", tid] });
+		},
+		onError: (err: Error) => toast.error(`Lock failed: ${err.message}`),
 	});
 
 	const unlockMutation = useMutation({
@@ -254,7 +259,11 @@ export function TenantDetail() {
 			});
 			if (err) throw new Error(formatError(err));
 		},
-		onSuccess: () => queryClient.invalidateQueries({ queryKey: ["locks", tid] }),
+		onSuccess: () => {
+			toast.success("Field unlocked");
+			queryClient.invalidateQueries({ queryKey: ["locks", tid] });
+		},
+		onError: (err: Error) => toast.error(`Unlock failed: ${err.message}`),
 	});
 
 	const isLoading = tenantLoading || schemaLoading || configLoading;
@@ -383,12 +392,6 @@ export function TenantDetail() {
 						</div>
 					</div>
 
-					{deleteMutation.isError && (
-						<p className="mb-4 text-red-600 dark:text-red-400">
-							Delete failed: {deleteMutation.error.message}
-						</p>
-					)}
-
 					{groups.length === 0 && (
 						<p className="text-gray-500 dark:text-gray-400">{label("schema.noFields")}</p>
 					)}
@@ -441,7 +444,6 @@ export function TenantDetail() {
 							onApply={() => applyMutation.mutate()}
 							onReset={handleResetAll}
 							isApplying={applyMutation.isPending}
-							applyError={applyError}
 						/>
 					)}
 				</>
