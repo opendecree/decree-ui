@@ -6,6 +6,7 @@ import { label } from "../lib/labels";
 import { canManageSchemas, canManageTenants } from "../lib/permissions";
 import { AuthBar } from "./AuthBar";
 import { DarkModeToggle } from "./DarkModeToggle";
+import { ErrorBoundary } from "./ErrorBoundary";
 
 // --- Sidebar icons (simple inline SVGs, 16x16) ---
 
@@ -210,7 +211,9 @@ export function Layout() {
 
 				{/* Content */}
 				<main className="flex-1 overflow-auto p-6">
-					<Outlet />
+					<ErrorBoundary>
+						<Outlet />
+					</ErrorBoundary>
 				</main>
 			</div>
 		</div>
