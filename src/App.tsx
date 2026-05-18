@@ -2,6 +2,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useState } from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
 import { EmbedLayout } from "./components/EmbedLayout";
+import { ErrorBoundary } from "./components/ErrorBoundary";
 import { Layout } from "./components/Layout";
 import type { AuthState } from "./lib/auth";
 import { AuthContext, loadAuth, saveAuth } from "./lib/auth";
@@ -48,30 +49,32 @@ export function App() {
 		<AuthContext value={{ auth, setAuth }}>
 			<QueryClientProvider client={queryClient}>
 				<ToastProvider>
-					<Routes>
-						{/* Standard layout with sidebar + header */}
-						<Route element={<Layout />}>
-							<Route index element={<HomeOrRedirect />} />
-							<Route path="schemas" element={<SchemaList />} />
-							<Route path="schemas/import" element={<SchemaImport />} />
-							<Route path="schemas/:id" element={<SchemaDetail />} />
-							<Route path="tenants" element={<TenantList />} />
-							<Route path="tenants/create" element={<TenantCreate />} />
-							<Route path="tenants/:id" element={<TenantDetail />} />
-							<Route path="tenants/:id/history" element={<TenantHistory />} />
-							<Route path="tenants/:id/audit" element={<TenantAudit />} />
-							<Route path="tenants/:id/usage" element={<TenantUsage />} />
-							<Route path="*" element={<NotFound />} />
-						</Route>
+					<ErrorBoundary>
+						<Routes>
+							{/* Standard layout with sidebar + header */}
+							<Route element={<Layout />}>
+								<Route index element={<HomeOrRedirect />} />
+								<Route path="schemas" element={<SchemaList />} />
+								<Route path="schemas/import" element={<SchemaImport />} />
+								<Route path="schemas/:id" element={<SchemaDetail />} />
+								<Route path="tenants" element={<TenantList />} />
+								<Route path="tenants/create" element={<TenantCreate />} />
+								<Route path="tenants/:id" element={<TenantDetail />} />
+								<Route path="tenants/:id/history" element={<TenantHistory />} />
+								<Route path="tenants/:id/audit" element={<TenantAudit />} />
+								<Route path="tenants/:id/usage" element={<TenantUsage />} />
+								<Route path="*" element={<NotFound />} />
+							</Route>
 
-						{/* Embed layout — no sidebar, no header, for iframe use */}
-						<Route path="embed" element={<EmbedLayout />}>
-							<Route path="tenants/:id" element={<TenantDetail />} />
-							<Route path="tenants/:id/audit" element={<TenantAudit />} />
-							<Route path="tenants/:id/usage" element={<TenantUsage />} />
-							<Route path="schemas/:id" element={<SchemaDetail />} />
-						</Route>
-					</Routes>
+							{/* Embed layout — no sidebar, no header, for iframe use */}
+							<Route path="embed" element={<EmbedLayout />}>
+								<Route path="tenants/:id" element={<TenantDetail />} />
+								<Route path="tenants/:id/audit" element={<TenantAudit />} />
+								<Route path="tenants/:id/usage" element={<TenantUsage />} />
+								<Route path="schemas/:id" element={<SchemaDetail />} />
+							</Route>
+						</Routes>
+					</ErrorBoundary>
 				</ToastProvider>
 			</QueryClientProvider>
 		</AuthContext>
