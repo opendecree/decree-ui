@@ -25,8 +25,6 @@ export interface PendingChangesBarProps {
 	onReset: () => void;
 	/** Whether the apply mutation is in progress. */
 	isApplying: boolean;
-	/** Error message from the last apply attempt. */
-	applyError: string | null;
 }
 
 /** Sticky bottom bar that appears when there are pending config changes. */
@@ -39,7 +37,6 @@ export function PendingChangesBar({
 	onApply,
 	onReset,
 	isApplying,
-	applyError,
 }: PendingChangesBarProps) {
 	const [showReview, setShowReview] = useState(false);
 	const count = pendingChanges.size;
@@ -83,12 +80,6 @@ export function PendingChangesBar({
 							className="w-full rounded border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
 						/>
 					</div>
-				</div>
-			)}
-
-			{applyError && (
-				<div className="mx-auto max-w-5xl px-6 pt-2">
-					<p className="text-sm text-red-600 dark:text-red-400">{applyError}</p>
 				</div>
 			)}
 
