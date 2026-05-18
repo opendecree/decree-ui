@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { useState } from "react";
 import { NavLink, Outlet } from "react-router-dom";
 import { useAuth } from "../lib/auth";
 import { config } from "../lib/config";
@@ -124,6 +125,7 @@ const icons = {
 /** App shell with sidebar navigation, header, and content area. */
 export function Layout() {
 	const { auth } = useAuth();
+	const [sidebarOpen, setSidebarOpen] = useState(false);
 
 	const isSingleTenant = config.layoutMode === "single-tenant";
 	const isSuperadmin = auth.role === "superadmin";
@@ -137,10 +139,26 @@ export function Layout() {
 	const appName = config.appName || label("app.name");
 	const logoSrc = config.logoUrl || "/logo.svg";
 
+	const closeSidebar = () => setSidebarOpen(false);
+
 	return (
 		<div className="flex h-screen">
+			{/* Mobile backdrop */}
+			{sidebarOpen && (
+				<button
+					type="button"
+					aria-label="Close navigation"
+					className="fixed inset-0 z-30 bg-black/40 md:hidden"
+					onClick={closeSidebar}
+				/>
+			)}
+
 			{/* Sidebar */}
-			<nav className="flex w-56 shrink-0 flex-col border-r border-gray-200 bg-gray-50 dark:border-gray-800 dark:bg-gray-900">
+			<nav
+				className={`fixed inset-y-0 left-0 z-40 flex w-56 shrink-0 flex-col border-r border-gray-200 bg-gray-50 transition-transform duration-200 dark:border-gray-800 dark:bg-gray-900 md:static md:translate-x-0 md:transition-none ${
+					sidebarOpen ? "translate-x-0" : "-translate-x-full"
+				}`}
+			>
 				<div className="flex items-center gap-2.5 border-b border-gray-200 p-4 dark:border-gray-800">
 					<img src={logoSrc} alt="" className="h-12 w-12" />
 					<h1 className="text-xl font-semibold">{appName}</h1>
@@ -148,37 +166,62 @@ export function Layout() {
 				<div className="flex flex-1 flex-col gap-1 p-3">
 					{isSingleTenant ? (
 						<>
-							<SidebarLink to={tenantPath} icon={icons.config} label={label("nav.config")} end />
+							<SidebarLink
+								to={tenantPath}
+								icon={icons.config}
+								label={label("nav.config")}
+								end
+								onClick={closeSidebar}
+							/>
 							<SidebarLink
 								to={`${tenantPath}/history`}
 								icon={icons.history}
 								label={label("nav.history")}
+								onClick={closeSidebar}
 							/>
 							<SidebarLink
 								to={`${tenantPath}/audit`}
 								icon={icons.audit}
 								label={label("nav.auditLog")}
+								onClick={closeSidebar}
 							/>
 							<SidebarLink
 								to={`${tenantPath}/usage`}
 								icon={icons.usage}
 								label={label("nav.usage")}
+								onClick={closeSidebar}
 							/>
 						</>
 					) : (
 						<>
-							<SidebarLink to="/" icon={icons.home} label={label("nav.home")} />
+							<SidebarLink
+								to="/"
+								icon={icons.home}
+								label={label("nav.home")}
+								onClick={closeSidebar}
+							/>
 							{showSchemas && (
-								<SidebarLink to="/schemas" icon={icons.schemas} label={label("nav.schemas")} />
+								<SidebarLink
+									to="/schemas"
+									icon={icons.schemas}
+									label={label("nav.schemas")}
+									onClick={closeSidebar}
+								/>
 							)}
 							{showTenants && (
-								<SidebarLink to="/tenants" icon={icons.tenants} label={label("nav.tenants")} />
+								<SidebarLink
+									to="/tenants"
+									icon={icons.tenants}
+									label={label("nav.tenants")}
+									onClick={closeSidebar}
+								/>
 							)}
 							{hasTenantScope && (
 								<SidebarLink
 									to={`/tenants/${auth.tenantId}`}
 									icon={icons.config}
 									label={label("nav.myConfig")}
+									onClick={closeSidebar}
 								/>
 							)}
 						</>
@@ -205,6 +248,24 @@ export function Layout() {
 			<div className="flex flex-1 flex-col overflow-hidden">
 				{/* Header */}
 				<header className="flex items-center border-b border-gray-200 px-6 py-3 dark:border-gray-800">
+					<button
+						type="button"
+						onClick={() => setSidebarOpen((o) => !o)}
+						className="mr-3 rounded p-1 text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800 md:hidden"
+						aria-label="Toggle navigation"
+					>
+						<svg
+							aria-hidden="true"
+							viewBox="0 0 16 16"
+							fill="none"
+							stroke="currentColor"
+							strokeWidth="1.5"
+							strokeLinecap="round"
+							className="h-5 w-5"
+						>
+							<path d="M2 4h12M2 8h12M2 12h12" />
+						</svg>
+					</button>
 					{!import.meta.env.VITE_HIDE_DEBUG && <AuthBar />}
 					<DarkModeToggle className="ml-auto" />
 				</header>
@@ -225,16 +286,19 @@ function SidebarLink({
 	icon,
 	label,
 	end,
+	onClick,
 }: {
 	to: string;
 	icon: ReactNode;
 	label: string;
 	end?: boolean;
+	onClick?: () => void;
 }) {
 	return (
 		<NavLink
 			to={to}
 			end={end || to === "/"}
+			onClick={onClick}
 			className={({ isActive }) =>
 				`flex items-center gap-2.5 rounded px-3 py-2 text-sm ${
 					isActive
