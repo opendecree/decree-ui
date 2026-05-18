@@ -8,6 +8,7 @@ import {
 	SensitiveBadge,
 	WriteOnceBadge,
 } from "../../components/FieldBadges";
+import { SkeletonDetail } from "../../components/Skeleton";
 import { useAuth } from "../../lib/auth";
 import { fieldTypeColor, fieldTypeIcon, fieldTypeLabel } from "../../lib/field-types";
 import { groupFields } from "../../lib/fields";
@@ -76,7 +77,7 @@ export function SchemaDetail() {
 				</Link>
 			</div>
 
-			{isLoading && <p className="text-gray-500 dark:text-gray-400">Loading schema...</p>}
+			{isLoading && <SkeletonDetail />}
 
 			{error && (
 				<p className="text-red-600 dark:text-red-400">Error loading schema: {error.message}</p>

@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
+import { SkeletonTable } from "../../components/Skeleton";
 import { useAuth } from "../../lib/auth";
 import { useSchemas, useTenants } from "../../lib/hooks";
 import { label } from "../../lib/labels";
@@ -49,7 +50,7 @@ export function TenantList() {
 				/>
 			</div>
 
-			{isLoading && <p className="text-gray-500 dark:text-gray-400">Loading tenants...</p>}
+			{isLoading && <SkeletonTable rows={5} />}
 
 			{error && (
 				<p className="text-red-600 dark:text-red-400">Error loading tenants: {error.message}</p>
