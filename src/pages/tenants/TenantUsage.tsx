@@ -1,4 +1,5 @@
 import { Link, useParams } from "react-router-dom";
+import { SkeletonTable } from "../../components/Skeleton";
 import { config } from "../../lib/config";
 import { useTenant, useTenantUsage } from "../../lib/hooks";
 import { label } from "../../lib/labels";
@@ -36,9 +37,7 @@ export function TenantUsage() {
 
 			<h2 className="mb-4 text-xl font-semibold">Usage Stats — {tenant?.name}</h2>
 
-			{isLoading && (
-				<p className="text-sm text-gray-500 dark:text-gray-400">{label("common.loading")}</p>
-			)}
+			{isLoading && <SkeletonTable rows={4} />}
 
 			{!isLoading && stats.length === 0 && (
 				<p className="text-sm text-gray-500 dark:text-gray-400">No usage data recorded yet.</p>
