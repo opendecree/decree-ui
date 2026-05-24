@@ -19,7 +19,7 @@
 		"pre-commit": "biome check src/ && tsc -b --noEmit && vitest run && npm run build"
 	},
 	"dependencies": {
-		"@tanstack/react-query": "^5.100.10",
+		"@tanstack/react-query": "^5.100.11",
 		"openapi-fetch": "^0.17.0",
 		"react": "^19.2.6",
 		"react-dom": "^19.2.6",
@@ -31,18 +31,18 @@
 		"@tailwindcss/vite": "^4.3.0",
 		"@testing-library/jest-dom": "^6.9.1",
 		"@testing-library/react": "^16.3.2",
-		"@types/node": "^25.8.0",
-		"@types/react": "^19.2.14",
+		"@types/node": "^25.9.1",
+		"@types/react": "^19.2.15",
 		"@types/react-dom": "^19.2.3",
 		"@vitejs/plugin-react": "^6.0.2",
-		"@vitest/coverage-v8": "^4.1.6",
+		"@vitest/coverage-v8": "^4.1.7",
 		"jsdom": "^29.1.1",
 		"openapi-typescript": "^7.13.0",
 		"swagger2openapi": "^7.0.8",
 		"tailwindcss": "^4.2.2",
-		"tsx": "^4.22.0",
+		"tsx": "^4.22.3",
 		"typescript": "~5.9.3",
-		"vite": "^8.0.13",
+		"vite": "^8.0.14",
 		"vitest": "^4.1.4"
 	}
 }
