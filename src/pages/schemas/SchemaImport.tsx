@@ -17,7 +17,7 @@ export function SchemaImport() {
 	const importMutation = useMutation({
 		mutationFn: async () => {
 			const { data, error } = await client.POST("/v1/schemas/import", {
-				body: { yamlContent: yaml, autoPublish },
+				body: { yamlContent: btoa(yaml), autoPublish },
 			});
 			if (error) throw new Error(formatError(error));
 			return data;
