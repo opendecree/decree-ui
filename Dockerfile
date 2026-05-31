@@ -34,8 +34,12 @@ ENV LAYOUT_MODE="full"
 # UI mode: full, single-tenant, single-schema. See docs/ui-modes.md.
 ENV TENANT_ID=""
 # Pre-selected tenant UUID or name slug. Required for single-tenant mode.
+ENV TENANT_ID_FILE=""
+# Path to a file containing the tenant ID (e.g. /data/tenant-id). Used when TENANT_ID is unset.
 ENV SCHEMA_ID=""
 # Pre-selected schema UUID or name slug. Required for single-schema mode.
+ENV SCHEMA_ID_FILE=""
+# Path to a file containing the schema ID. Used when SCHEMA_ID is unset.
 ENV DEFAULT_ROLE=""
 # Default auth role: superadmin, admin, user. Empty = superadmin.
 ENV DEFAULT_SUBJECT=""
