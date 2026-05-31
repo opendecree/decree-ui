@@ -98,6 +98,9 @@ export function TenantDetail() {
 	const [pendingChanges, setPendingChanges] = useState<Map<string, string>>(new Map());
 	const [description, setDescription] = useState("");
 
+	const productMode =
+		appConfig.layoutMode === "single-tenant" || appConfig.layoutMode === "config-only";
+
 	const fields = schema?.fields ?? [];
 	const configValues = config?.values ?? [];
 	const locks = locksData?.locks ?? [];
@@ -416,6 +419,7 @@ export function TenantDetail() {
 											lastChanged={lastChangedMap.get(field.path ?? "")}
 											editing={editing}
 											showLocks={canManageLocks(auth.role)}
+											productMode={productMode}
 											onChange={(v) => handleChange(field.path ?? "", v)}
 											onUndo={() => handleUndo(field.path ?? "")}
 											onLock={() => lockMutation.mutate(field.path ?? "")}
@@ -461,6 +465,7 @@ interface FieldRowProps {
 	lastChanged?: { actor: string; time: string };
 	editing: boolean;
 	showLocks: boolean;
+	productMode: boolean;
 	onChange: (value: string) => void;
 	onUndo: () => void;
 	onLock: () => void;
@@ -475,6 +480,7 @@ function FieldRow({
 	lastChanged,
 	editing,
 	showLocks,
+	productMode,
 	onChange,
 	onUndo,
 	onLock,
@@ -494,7 +500,7 @@ function FieldRow({
 						: "border-gray-200 dark:border-gray-800"
 			}`}
 		>
-			<TypeBadge type={field.type} />
+			<TypeBadge type={field.type} subtle={productMode} />
 			<div className="min-w-0 flex-1">
 				<div className="mb-1 flex items-center gap-2">
 					{field.title ? (
@@ -505,7 +511,15 @@ function FieldRow({
 							</span>
 						</>
 					) : (
-						<span className="font-mono text-sm font-medium">{field.path}</span>
+						<span
+							className={
+								productMode
+									? "font-mono text-sm text-gray-500 dark:text-gray-400"
+									: "font-mono text-sm font-medium"
+							}
+						>
+							{field.path}
+						</span>
 					)}
 					{isDirty && <span className="h-2 w-2 rounded-full bg-blue-500" title="Modified" />}
 					{field.nullable && (
@@ -524,7 +538,15 @@ function FieldRow({
 					{field.sensitive && <SensitiveBadge />}
 				</div>
 				{field.description && (
-					<p className="mb-2 text-xs text-gray-500 dark:text-gray-400">{field.description}</p>
+					<p
+						className={
+							productMode
+								? "mb-2 text-sm text-gray-600 dark:text-gray-300"
+								: "mb-2 text-xs text-gray-500 dark:text-gray-400"
+						}
+					>
+						{field.description}
+					</p>
 				)}
 				{field.deprecated && field.redirectTo && (
 					<p className="mb-2 text-xs text-amber-600 dark:text-amber-400">
@@ -657,11 +679,14 @@ function formatDuration(raw: string): string {
 	return parts.join("") || "0s";
 }
 
-function TypeBadge({ type }: { type?: FieldType }) {
+function TypeBadge({ type, subtle = false }: { type?: FieldType; subtle?: boolean }) {
+	const colorClass = subtle
+		? "bg-gray-100 text-gray-400 dark:bg-gray-800 dark:text-gray-500"
+		: fieldTypeColor(type);
 	return (
 		<span className="group relative pt-1">
 			<span
-				className={`inline-flex w-9 items-center justify-center rounded py-0.5 text-xs font-bold leading-tight ${fieldTypeColor(type)}`}
+				className={`inline-flex w-9 items-center justify-center rounded py-0.5 text-xs font-bold leading-tight ${colorClass}`}
 			>
 				{fieldTypeIcon(type)}
 			</span>
