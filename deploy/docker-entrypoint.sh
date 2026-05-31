@@ -15,6 +15,16 @@ CONFIG_DIR="/usr/share/nginx/html"
 #
 # API_URL is used by nginx for reverse proxying /v1/ requests (Docker-internal hostname).
 
+# Resolve TENANT_ID: env var takes precedence; fall back to file.
+if [ -z "$TENANT_ID" ] && [ -n "$TENANT_ID_FILE" ] && [ -r "$TENANT_ID_FILE" ]; then
+  TENANT_ID=$(cat "$TENANT_ID_FILE")
+fi
+
+# Resolve SCHEMA_ID: env var takes precedence; fall back to file.
+if [ -z "$SCHEMA_ID" ] && [ -n "$SCHEMA_ID_FILE" ] && [ -r "$SCHEMA_ID_FILE" ]; then
+  SCHEMA_ID=$(cat "$SCHEMA_ID_FILE")
+fi
+
 cat > "$CONFIG_DIR/config.js" <<EOF
 window.__DECREE_UI_CONFIG__ = {
   apiUrl: "${BROWSER_API_URL}",

@@ -208,6 +208,30 @@ The UI supports dark/light mode toggle. Future considerations:
 | `BROWSER_API_URL` | Browser API URL (empty = same origin) | `""` |
 | `LAYOUT_MODE` | UI mode | `full` |
 | `TENANT_ID` | Pre-selected tenant (UUID or slug) | `""` |
+| `TENANT_ID_FILE` | Path to file containing tenant ID (used when `TENANT_ID` is unset) | `""` |
 | `SCHEMA_ID` | Pre-selected schema (UUID or slug) | `""` |
+| `SCHEMA_ID_FILE` | Path to file containing schema ID (used when `SCHEMA_ID` is unset) | `""` |
 | `DEFAULT_ROLE` | Default auth role | `superadmin` |
 | `DEFAULT_SUBJECT` | Default auth subject | `admin` |
+
+## File-based ID injection
+
+`TENANT_ID_FILE` and `SCHEMA_ID_FILE` are a convenience for Docker Compose demos where IDs are written dynamically by a seed container. The env var (`TENANT_ID` / `SCHEMA_ID`) always wins; the file is only read when the env var is empty.
+
+```yaml
+admin:
+  environment:
+    LAYOUT_MODE: config-only
+    TENANT_ID_FILE: /data/tenant-id
+  volumes:
+    - seed-data:/data:ro
+```
+
+For real deployments, use the env var directly:
+
+```yaml
+admin:
+  environment:
+    LAYOUT_MODE: config-only
+    TENANT_ID: <uuid>
+```
