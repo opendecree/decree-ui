@@ -230,17 +230,31 @@ export function Layout() {
 
 				{/* Footer */}
 				<div className="border-t border-gray-200 p-3 dark:border-gray-800">
-					<p className="text-[11px] text-gray-400 dark:text-gray-600">
-						Powered by{" "}
-						<a
-							href="https://github.com/opendecree/decree"
-							target="_blank"
-							rel="noopener noreferrer"
-							className="hover:text-gray-600 hover:underline dark:hover:text-gray-400"
-						>
-							OpenDecree
-						</a>
-					</p>
+					<div className="space-y-1">
+						<p className="text-[11px] text-gray-400 dark:text-gray-600">
+							v{__APP_VERSION__}
+							{" · "}
+							<a
+								href="https://github.com/opendecree/decree"
+								target="_blank"
+								rel="noopener noreferrer"
+								className="hover:text-gray-600 hover:underline dark:hover:text-gray-400"
+							>
+								Docs
+							</a>
+						</p>
+						<p className="text-[11px] text-gray-400 dark:text-gray-600">
+							Powered by{" "}
+							<a
+								href="https://github.com/opendecree/decree"
+								target="_blank"
+								rel="noopener noreferrer"
+								className="hover:text-gray-600 hover:underline dark:hover:text-gray-400"
+							>
+								OpenDecree
+							</a>
+						</p>
+					</div>
 				</div>
 			</nav>
 
