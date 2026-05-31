@@ -14,10 +14,10 @@ test("import schema via UI form", async ({ page }) => {
 	await page.goto("/schemas/import");
 
 	const yaml = [
-		"syntax: v1",
+		"spec_version: v1",
 		"name: e2e-smoke",
 		"fields:",
-		"  - path: feature.enabled",
+		"  feature.enabled:",
 		"    type: bool",
 	].join("\n");
 
@@ -36,7 +36,7 @@ test("imported schema appears in schemas list", async ({ page }) => {
 
 test("tenant config page loads", async ({ page, request }) => {
 	const yamlB64 = Buffer.from(
-		"syntax: v1\nname: e2e-config\nfields:\n  - path: x\n    type: string",
+		"spec_version: v1\nname: e2e-config\nfields:\n  x:\n    type: string",
 	).toString("base64");
 
 	const importRes = await request.post(`${API_URL}/v1/schemas/import`, {
