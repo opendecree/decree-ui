@@ -16,6 +16,7 @@
 		"screenshots": "tsx scripts/screenshots.ts",
 		"screenshots:full": "bash scripts/take-screenshots.sh",
 		"screenshots:rebuild": "bash scripts/take-screenshots.sh --rebuild",
+		"test:e2e": "playwright test",
 		"pre-commit": "biome check src/ && tsc -b --noEmit && vitest run && npm run build"
 	},
 	"dependencies": {
