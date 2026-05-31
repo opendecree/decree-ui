@@ -17,7 +17,7 @@ export function SchemaImport() {
 	const importMutation = useMutation({
 		mutationFn: async () => {
 			const { data, error } = await client.POST("/v1/schemas/import", {
-				body: { yamlContent: yaml, autoPublish },
+				body: { yamlContent: btoa(yaml), autoPublish },
 			});
 			if (error) throw new Error(formatError(error));
 			return data;
@@ -68,7 +68,7 @@ export function SchemaImport() {
 					value={yaml}
 					onChange={(e) => setYaml(e.target.value)}
 					rows={16}
-					placeholder={`syntax: v1\nname: my-schema\nfields:\n  - path: feature.enabled\n    type: bool`}
+					placeholder={`spec_version: v1\nname: my-schema\nfields:\n  feature.enabled:\n    type: bool`}
 					className="w-full rounded border border-gray-300 px-3 py-2 font-mono text-sm dark:border-gray-700 dark:bg-gray-800"
 				/>
 			</div>

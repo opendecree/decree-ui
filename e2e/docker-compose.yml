@@ -1,0 +1,27 @@
+services:
+  server:
+    image: ghcr.io/opendecree/decree:main
+    environment:
+      STORAGE_BACKEND: memory
+      HTTP_PORT: "8080"
+      GRPC_PORT: "9090"
+      INSECURE_LISTEN: "1"
+      DECREE_GATEWAY_TRUSTED_PROXY: "1"
+      ENABLE_SERVICES: schema,config,audit
+    ports:
+      - "8080:8080"
+
+  ui:
+    build:
+      context: ..
+    environment:
+      API_URL: http://server:8080
+    ports:
+      - "3000:80"
+    depends_on:
+      - server
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost/ > /dev/null 2>&1 || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
