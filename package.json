@@ -20,14 +20,14 @@
 		"pre-commit": "biome check src/ && tsc -b --noEmit && vitest run && npm run build"
 	},
 	"dependencies": {
-		"@tanstack/react-query": "^5.100.11",
+		"@tanstack/react-query": "^5.100.14",
 		"openapi-fetch": "^0.17.0",
 		"react": "^19.2.6",
 		"react-dom": "^19.2.6",
-		"react-router-dom": "^7.15.1"
+		"react-router-dom": "^7.16.0"
 	},
 	"devDependencies": {
-		"@biomejs/biome": "^2.4.15",
+		"@biomejs/biome": "^2.4.16",
 		"@playwright/test": "^1.60.0",
 		"@tailwindcss/vite": "^4.3.0",
 		"@testing-library/jest-dom": "^6.9.1",
