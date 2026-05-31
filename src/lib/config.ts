@@ -1,5 +1,5 @@
 /** Layout mode controls which navigation levels are visible. */
-export type LayoutMode = "full" | "single-schema" | "single-tenant";
+export type LayoutMode = "full" | "single-schema" | "single-tenant" | "config-only";
 
 /** Runtime config injected by Docker entrypoint (window.__DECREE_UI_CONFIG__). */
 interface RuntimeConfig {

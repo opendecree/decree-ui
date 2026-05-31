@@ -1,5 +1,6 @@
 import type { AuthState } from "../lib/auth";
 import { useAuth } from "../lib/auth";
+import { config } from "../lib/config";
 import { DEFAULT_SUBJECT, ROLES, type Role } from "../lib/constants";
 import { label } from "../lib/labels";
 
@@ -11,6 +12,8 @@ export function AuthBar() {
 		setAuth({ ...auth, ...patch });
 	};
 
+	const availableRoles =
+		config.layoutMode === "config-only" ? ROLES.filter((r) => r !== "superadmin") : ROLES;
 	const needsTenant = auth.role !== "superadmin";
 
 	return (
@@ -42,7 +45,7 @@ export function AuthBar() {
 					}}
 					className="rounded border border-gray-300 bg-white px-2 py-1 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
 				>
-					{ROLES.map((role) => (
+					{availableRoles.map((role) => (
 						<option key={role} value={role}>
 							{role}
 						</option>
