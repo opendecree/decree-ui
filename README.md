@@ -5,9 +5,28 @@
 [![License](https://img.shields.io/github/license/opendecree/decree-ui)](LICENSE)
 [![codecov](https://codecov.io/gh/opendecree/decree-ui/graph/badge.svg)](https://codecov.io/gh/opendecree/decree-ui)
 
-Web-based admin interface for [OpenDecree](https://github.com/opendecree/decree) — schema-driven configuration management.
+A browser UI for [OpenDecree](https://github.com/opendecree/decree) — browse schemas, edit tenant config with validation and audit history,
+and hand it to product or ops teams without giving them a terminal. Embeddable into your own
+internal tools, with white-labeling so it can speak your domain's language instead of "schemas" and "tenants."
 
 > **Alpha** — This project is under active development. UI, configuration, and behavior may change without notice between versions.
+
+![Config editor](docs/screenshots/light-tenant-acme.png)
+
+## Embedding and white-labeling
+
+The UI ships in three layout modes (`VITE_LAYOUT_MODE`), so the same build can serve very different audiences:
+
+- **`full`** (default) — schema management, tenant management, and config editing, for platform engineers running the whole system
+- **`single-tenant`** — a config editor scoped to one tenant (no schema/tenant navigation), for handing to that tenant's ops team
+- **`single-schema`** — one schema's fields plus the tenants on it, for teams that own a single config surface
+
+See [docs/ui-modes.md](docs/ui-modes.md) for the full mode/persona breakdown.
+
+On top of layout modes, `config/theme.json` feature flags can hide whole sections — e.g. set
+`features.schemas: false` to keep non-developers out of schema editing — and `config/labels.json`
+renames every visible string, so "Schemas" and "Tenants" can become "Services" and "Customers" to
+match your domain. Details in [Customization](#customization) below.
 
 ## Development
 
