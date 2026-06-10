@@ -1,8 +1,8 @@
 # OpenDecree Admin GUI
 
 [![CI](https://github.com/opendecree/decree-ui/actions/workflows/ci.yml/badge.svg)](https://github.com/opendecree/decree-ui/actions/workflows/ci.yml)
+[![CodeQL](https://github.com/opendecree/decree-ui/actions/workflows/codeql.yml/badge.svg)](https://github.com/opendecree/decree-ui/actions/workflows/codeql.yml)
 [![License](https://img.shields.io/github/license/opendecree/decree-ui)](LICENSE)
-[![Project Status: WIP](https://www.repostatus.org/badges/latest/wip.svg)](https://www.repostatus.org/#wip)
 [![codecov](https://codecov.io/gh/opendecree/decree-ui/graph/badge.svg)](https://codecov.io/gh/opendecree/decree-ui)
 
 Web-based admin interface for [OpenDecree](https://github.com/opendecree/decree) — schema-driven configuration management.
