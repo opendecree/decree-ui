@@ -9,9 +9,11 @@ import type { AuthState } from "./lib/auth";
 import { AuthContext, loadAuth, saveAuth } from "./lib/auth";
 import { config } from "./lib/config";
 import { resolveEntryPath } from "./lib/nav";
+import { canViewSystemOverview } from "./lib/permissions";
 import { ToastProvider } from "./lib/toast";
 import { Home } from "./pages/Home";
 import { NotFound } from "./pages/NotFound";
+import { SystemOverview } from "./pages/SystemOverview";
 import { SchemaDetail } from "./pages/schemas/SchemaDetail";
 import { SchemaImport } from "./pages/schemas/SchemaImport";
 import { SchemaList } from "./pages/schemas/SchemaList";
@@ -34,15 +36,15 @@ const queryClient = new QueryClient({
 /**
  * Role-first entry point. The landing destination is derived from the caller's
  * role (read view / config editor / system overview) rather than a fixed home,
- * with the deployment pins (tenantId) narrowing the target. superadmin falls
- * through to Home until the overview screen lands (TODO(#91)).
+ * with the deployment pins (tenantId) narrowing the target. superadmin lands on
+ * the cross-tenant system overview at `/`; tenant-scoped roles navigate away to
+ * their pinned tenant. The lone non-superadmin who resolves to `/` (none today)
+ * would see the interim Home rather than the superadmin-only overview.
  */
 function RoleEntry({ auth }: { auth: AuthState }) {
 	const target = resolveEntryPath(auth.role, { tenantId: config.tenantId || auth.tenantId });
 	if (target === "/") {
-		// TODO(#91): superadmin overview entry — render the system-overview screen
-		// here instead of Home once it exists.
-		return <Home />;
+		return canViewSystemOverview(auth.role) ? <SystemOverview /> : <Home />;
 	}
 	return <Navigate to={target} replace />;
 }

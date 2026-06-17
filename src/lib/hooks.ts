@@ -163,6 +163,26 @@ export function useAuditLog(tenantId: string, filters?: { fieldPath?: string; ac
 	});
 }
 
+/**
+ * Fetch the paths of fields with no reads since `since` (RFC 3339), via
+ * GET /v1/tenants/{tenantId}/unused-fields. Used by the governance overview to
+ * surface deprecation/removal candidates per tenant.
+ */
+export function useUnusedFields(tenantId: string, since?: string) {
+	const client = useApiClient();
+	return useQuery({
+		queryKey: ["unused-fields", tenantId, since],
+		queryFn: async () => {
+			const { data, error } = await client.GET("/v1/tenants/{tenantId}/unused-fields", {
+				params: { path: { tenantId }, query: since ? { since } : {} },
+			});
+			if (error) throw new Error(formatError(error));
+			return data;
+		},
+		enabled: !!tenantId,
+	});
+}
+
 /** Fetch tenant-level usage stats. */
 export function useTenantUsage(tenantId: string) {
 	const client = useApiClient();

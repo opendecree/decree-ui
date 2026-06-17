@@ -16,6 +16,9 @@ vi.mock("../lib/config", () => ({
 }));
 
 vi.mock("../pages/Home", () => ({ Home: () => <div data-testid="home" /> }));
+vi.mock("../pages/SystemOverview", () => ({
+	SystemOverview: () => <div data-testid="system-overview" />,
+}));
 vi.mock("../pages/NotFound", () => ({ NotFound: () => <div data-testid="not-found" /> }));
 vi.mock("../pages/tenants/TenantConfig", () => ({
 	TenantConfig: () => <div data-testid="tenant-config" />,
@@ -58,10 +61,10 @@ describe("App in full mode", () => {
 		expect(screen.getByRole("navigation")).toBeInTheDocument();
 	});
 
-	it("lands superadmin on Home at / (interim overview entry)", () => {
+	it("lands superadmin on the system overview at /", () => {
 		// No stored auth + no defaultRole => DEFAULT_ROLE superadmin.
 		renderApp("/");
-		expect(screen.getByTestId("home")).toBeInTheDocument();
+		expect(screen.getByTestId("system-overview")).toBeInTheDocument();
 	});
 
 	it("routes an admin entry to the tenants list when no tenant is pinned", () => {

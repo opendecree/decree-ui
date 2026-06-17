@@ -23,8 +23,8 @@ describe("resolveEntryPath — role -> entry mapping", () => {
 	});
 
 	describe("superadmin", () => {
-		it("lands on the overview entry (interim Home) regardless of pins", () => {
-			// TODO(#91): becomes the system-overview route once that screen lands.
+		it("lands on the system-overview index route regardless of pins", () => {
+			// The overview bypasses tenant scope, so a pin never narrows it.
 			expect(resolveEntryPath("superadmin", {})).toBe("/");
 			expect(resolveEntryPath("superadmin", { tenantId: TENANT })).toBe("/");
 		});

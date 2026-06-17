@@ -53,6 +53,16 @@ export function canEditField(
 	return fieldEditBlock(role, field, ctx) === null;
 }
 
+/**
+ * Whether this role sees the cross-tenant system overview. It is the superadmin
+ * landing surface (tenants + schemas at a glance, audit-chain trust, governance)
+ * and must be *absent* — not merely disabled — for admin/user, who are scoped to
+ * a single tenant. Superadmin-only, matching the global-management capabilities.
+ */
+export function canViewSystemOverview(role: Role): boolean {
+	return role === "superadmin";
+}
+
 /** Check if the current role can manage schemas (create, import, publish). */
 export function canManageSchemas(role: Role): boolean {
 	return role === "superadmin";
