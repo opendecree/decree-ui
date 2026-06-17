@@ -31,3 +31,19 @@ export function SensitiveBadge() {
 		</span>
 	);
 }
+
+/**
+ * The literal redaction the server returns for sensitive (write-only) fields on
+ * every read path, for every role — `internal/config/redact.go`. Render as-is:
+ * no reveal affordance, no fake masking, no superadmin bypass.
+ */
+export function RedactedValue() {
+	return (
+		<span
+			title="Write-only — the server returns the literal [REDACTED] on every read path for every role. No reveal."
+			className="inline-block rounded bg-warn-soft px-2 py-0.5 font-mono text-xs font-semibold tracking-wide text-warn"
+		>
+			[REDACTED]
+		</span>
+	);
+}

@@ -6,6 +6,7 @@ import { ConfigHistory } from "../../components/ConfigHistory";
 import {
 	DeprecatedBadge,
 	ReadOnlyBadge,
+	RedactedValue,
 	SensitiveBadge,
 	WriteOnceBadge,
 } from "../../components/FieldBadges";
@@ -16,7 +17,7 @@ import { TypedInput } from "../../components/TypedInput";
 import { useAuth } from "../../lib/auth";
 import { config as appConfig } from "../../lib/config";
 import { fieldTypeColor, fieldTypeIcon, fieldTypeLabel } from "../../lib/field-types";
-import { groupFields } from "../../lib/fields";
+import { formatDuration, groupFields, typedValueToString } from "../../lib/fields";
 import {
 	useApiClient,
 	useAuditLog,
@@ -32,19 +33,6 @@ import { useToast } from "../../lib/toast";
 type SchemaField = components["schemas"]["v1SchemaField"];
 type TypedValue = components["schemas"]["v1TypedValue"];
 type FieldType = components["schemas"]["v1FieldType"];
-
-function typedValueToString(tv: TypedValue | undefined): string {
-	if (!tv) return "";
-	if (tv.stringValue !== undefined) return tv.stringValue;
-	if (tv.integerValue !== undefined) return String(tv.integerValue);
-	if (tv.numberValue !== undefined) return String(tv.numberValue);
-	if (tv.boolValue !== undefined) return String(tv.boolValue);
-	if (tv.timeValue !== undefined) return tv.timeValue;
-	if (tv.durationValue !== undefined) return tv.durationValue;
-	if (tv.urlValue !== undefined) return tv.urlValue;
-	if (tv.jsonValue !== undefined) return tv.jsonValue;
-	return "";
-}
 
 function stringToTypedValue(value: string, fieldType: FieldType | undefined): TypedValue {
 	switch (fieldType) {
@@ -627,7 +615,7 @@ function ReadOnlyValue({
 		);
 	}
 	if (sensitive) {
-		return <span className="text-sm text-gray-400 dark:text-gray-500">{"••••••••"}</span>;
+		return <RedactedValue />;
 	}
 	if (fieldType === "FIELD_TYPE_BOOL") {
 		return (
@@ -661,22 +649,6 @@ function ReadOnlyValue({
 		return <span className="text-sm">{formatDuration(value)}</span>;
 	}
 	return <span className="text-sm">{value}</span>;
-}
-
-/** Format a duration string (e.g. "86400s") into human-readable form (e.g. "24h"). */
-function formatDuration(raw: string): string {
-	const match = raw.match(/^(\d+(?:\.\d+)?)s$/);
-	if (!match) return raw;
-	const totalSeconds = Number(match[1]);
-	if (totalSeconds === 0) return "0s";
-	const hours = Math.floor(totalSeconds / 3600);
-	const minutes = Math.floor((totalSeconds % 3600) / 60);
-	const seconds = totalSeconds % 60;
-	const parts: string[] = [];
-	if (hours > 0) parts.push(`${hours}h`);
-	if (minutes > 0) parts.push(`${minutes}m`);
-	if (seconds > 0) parts.push(`${seconds}s`);
-	return parts.join("") || "0s";
 }
 
 function TypeBadge({ type, subtle = false }: { type?: FieldType; subtle?: boolean }) {
