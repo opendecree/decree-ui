@@ -20,6 +20,8 @@
 		"pre-commit": "biome check src/ && tsc -b --noEmit && vitest run && npm run build"
 	},
 	"dependencies": {
+		"@fontsource/ibm-plex-mono": "^5.2.7",
+		"@fontsource/ibm-plex-sans": "^5.2.8",
 		"@tanstack/react-query": "^5.101.0",
 		"openapi-fetch": "^0.17.0",
 		"react": "^19.2.7",

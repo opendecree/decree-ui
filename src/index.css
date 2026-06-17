@@ -2,7 +2,113 @@
 
 @custom-variant dark (&:where(.dark, .dark *));
 
+/* ============================================================
+   OpenDecree design tokens — ported from the hi-fi design system
+   (redesign-brief/wireframes/design-set/hifi.css). decree-ui themes
+   via a `.dark` class on <html> (light = default), so the hi-fi's
+   light palette lives in :root and dark overrides it under .dark.
+   oklch values are 1:1 with the hi-fi; light --lock and light
+   shadows are derived (the hi-fi light block omitted them).
+   ============================================================ */
+:root {
+	/* surfaces + text — light */
+	--bg: oklch(0.975 0.004 255);
+	--surface: oklch(1 0 0);
+	--surface-2: oklch(0.984 0.004 255);
+	--surface-3: oklch(0.955 0.006 255);
+	--border: oklch(0.905 0.008 255);
+	--border-2: oklch(0.83 0.012 255);
+	--text: oklch(0.27 0.02 258);
+	--text-2: oklch(0.46 0.02 258);
+	--text-3: oklch(0.62 0.018 258);
+
+	/* accent + semantic — light */
+	--accent: oklch(0.54 0.16 252);
+	--accent-fg: oklch(0.99 0 0);
+	--accent-soft: oklch(0.54 0.16 252 / 0.1);
+	--accent-line: oklch(0.54 0.16 252 / 0.4);
+	--ok: oklch(0.52 0.13 158);
+	--ok-soft: oklch(0.52 0.13 158 / 0.12);
+	--warn: oklch(0.6 0.12 65);
+	--warn-soft: oklch(0.6 0.12 65 / 0.13);
+	--danger: oklch(0.55 0.19 27);
+	--danger-soft: oklch(0.55 0.19 27 / 0.1);
+	--lock: oklch(0.55 0.13 305);
+	--lock-soft: oklch(0.55 0.13 305 / 0.12);
+
+	/* shared — radii, shadow, type */
+	--r-xs: 4px;
+	--r-sm: 6px;
+	--r-md: 9px;
+	--r-lg: 13px;
+	--r-pill: 999px;
+	--sh-1: 0 1px 2px rgba(0, 0, 0, 0.06);
+	--sh-2: 0 6px 22px -8px rgba(0, 0, 0, 0.12);
+	--sans: "IBM Plex Sans", system-ui, -apple-system, sans-serif;
+	--mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+
+.dark {
+	/* surfaces + text — dark */
+	--bg: oklch(0.165 0.012 250);
+	--surface: oklch(0.205 0.013 250);
+	--surface-2: oklch(0.235 0.014 250);
+	--surface-3: oklch(0.275 0.015 250);
+	--border: oklch(0.305 0.014 250);
+	--border-2: oklch(0.385 0.016 250);
+	--text: oklch(0.945 0.006 250);
+	--text-2: oklch(0.74 0.014 250);
+	--text-3: oklch(0.58 0.015 250);
+
+	/* accent + semantic — dark */
+	--accent: oklch(0.72 0.13 240);
+	--accent-fg: oklch(0.18 0.02 250);
+	--accent-soft: oklch(0.72 0.13 240 / 0.16);
+	--accent-line: oklch(0.72 0.13 240 / 0.45);
+	--ok: oklch(0.76 0.14 158);
+	--ok-soft: oklch(0.76 0.14 158 / 0.15);
+	--warn: oklch(0.81 0.13 80);
+	--warn-soft: oklch(0.81 0.13 80 / 0.15);
+	--danger: oklch(0.71 0.17 25);
+	--danger-soft: oklch(0.71 0.17 25 / 0.16);
+	--lock: oklch(0.74 0.11 305);
+	--lock-soft: oklch(0.74 0.11 305 / 0.16);
+
+	--sh-1: 0 1px 2px rgba(0, 0, 0, 0.35);
+	--sh-2: 0 6px 22px -8px rgba(0, 0, 0, 0.55);
+}
+
+/* Register tokens as Tailwind v4 utilities. `inline` keeps the var()
+   reference at the use site so `.dark` overrides flow through. */
+@theme inline {
+	--color-canvas: var(--bg);
+	--color-surface: var(--surface);
+	--color-surface-2: var(--surface-2);
+	--color-surface-3: var(--surface-3);
+	--color-line: var(--border);
+	--color-line-2: var(--border-2);
+	--color-fg: var(--text);
+	--color-fg-2: var(--text-2);
+	--color-fg-3: var(--text-3);
+
+	--color-accent: var(--accent);
+	--color-accent-fg: var(--accent-fg);
+	--color-accent-soft: var(--accent-soft);
+	--color-accent-line: var(--accent-line);
+	--color-ok: var(--ok);
+	--color-ok-soft: var(--ok-soft);
+	--color-warn: var(--warn);
+	--color-warn-soft: var(--warn-soft);
+	--color-danger: var(--danger);
+	--color-danger-soft: var(--danger-soft);
+	--color-lock: var(--lock);
+	--color-lock-soft: var(--lock-soft);
+
+	--font-sans: var(--sans);
+	--font-mono: var(--mono);
+}
+
 body {
 	@apply bg-white text-gray-900 dark:bg-gray-950 dark:text-gray-100;
-	font-family: system-ui, -apple-system, sans-serif;
+	font-family: var(--sans);
 }
