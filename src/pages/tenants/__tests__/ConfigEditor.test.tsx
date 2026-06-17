@@ -69,6 +69,32 @@ const fields: SchemaField[] = [
 		tags: ["api"],
 		sensitive: true,
 	},
+	{ path: "flags.enabled", title: "Enabled", type: "FIELD_TYPE_BOOL", tags: ["flags"] },
+	{
+		path: "flags.tier",
+		title: "Tier",
+		type: "FIELD_TYPE_STRING",
+		tags: ["flags"],
+		constraints: { enumValues: ["bronze", "silver", "gold"] },
+	},
+	{ path: "flags.cutover", title: "Cutover", type: "FIELD_TYPE_TIME", tags: ["flags"] },
+	{ path: "flags.overrides", title: "Overrides", type: "FIELD_TYPE_JSON", tags: ["flags"] },
+	{
+		path: "flags.note",
+		title: "Note",
+		type: "FIELD_TYPE_STRING",
+		tags: ["flags"],
+		nullable: true,
+	},
+	{
+		path: "flags.legacy_mode",
+		title: "Legacy Mode",
+		type: "FIELD_TYPE_STRING",
+		tags: ["flags"],
+		deprecated: true,
+		redirectTo: "flags.tier",
+		defaultValue: "off",
+	},
 ];
 
 const configValues = [
@@ -84,6 +110,14 @@ const configValues = [
 		checksum: "f6071a2b",
 	},
 	{ fieldPath: "api.rate_limits", value: { jsonValue: "[REDACTED]" }, checksum: "b2c3d4e5" },
+	{ fieldPath: "flags.enabled", value: { boolValue: false }, checksum: "11223344" },
+	{ fieldPath: "flags.tier", value: { stringValue: "bronze" }, checksum: "55667788" },
+	{
+		fieldPath: "flags.cutover",
+		value: { timeValue: "2025-01-15T09:30:00Z" },
+		checksum: "99aabbcc",
+	},
+	{ fieldPath: "flags.overrides", value: { jsonValue: '{"a":1}' }, checksum: "ddeeff00" },
 ];
 
 let mockLocks: { fieldPath: string }[] = [];
@@ -349,6 +383,211 @@ describe("ConfigEditor — save + optimistic concurrency", () => {
 	});
 });
 
+describe("ConfigEditor — typed inputs & TypedValue encoding", () => {
+	it("renders a bool toggle and encodes boolValue on save", async () => {
+		mockClient.POST.mockResolvedValue({ data: {}, error: undefined });
+		renderEditor();
+		const toggle = within(screen.getByTestId("field-flags.enabled")).getByLabelText("Enabled");
+		expect(toggle).toHaveAttribute("type", "checkbox");
+		fireEvent.click(toggle); // false -> true
+		fireEvent.click(screen.getByRole("button", { name: /Save batch/ }));
+		await waitFor(() => expect(mockClient.POST).toHaveBeenCalledTimes(1));
+		expect(mockClient.POST.mock.calls[0][1].body.updates).toEqual([
+			{ fieldPath: "flags.enabled", value: { boolValue: true }, expectedChecksum: "11223344" },
+		]);
+	});
+
+	it("renders an enum select and encodes stringValue on save", async () => {
+		mockClient.POST.mockResolvedValue({ data: {}, error: undefined });
+		renderEditor();
+		const select = within(screen.getByTestId("field-flags.tier")).getByLabelText("Tier");
+		expect(select.tagName).toBe("SELECT");
+		fireEvent.change(select, { target: { value: "gold" } });
+		fireEvent.click(screen.getByRole("button", { name: /Save batch/ }));
+		await waitFor(() => expect(mockClient.POST).toHaveBeenCalledTimes(1));
+		expect(mockClient.POST.mock.calls[0][1].body.updates).toEqual([
+			{ fieldPath: "flags.tier", value: { stringValue: "gold" }, expectedChecksum: "55667788" },
+		]);
+	});
+
+	it("renders a JSON textarea and encodes jsonValue on save", async () => {
+		mockClient.POST.mockResolvedValue({ data: {}, error: undefined });
+		renderEditor();
+		const ta = within(screen.getByTestId("field-flags.overrides")).getByLabelText("Overrides");
+		expect(ta.tagName).toBe("TEXTAREA");
+		fireEvent.change(ta, { target: { value: '{"b":2}' } });
+		fireEvent.click(screen.getByRole("button", { name: /Save batch/ }));
+		await waitFor(() => expect(mockClient.POST).toHaveBeenCalledTimes(1));
+		expect(mockClient.POST.mock.calls[0][1].body.updates).toEqual([
+			{
+				fieldPath: "flags.overrides",
+				value: { jsonValue: '{"b":2}' },
+				expectedChecksum: "ddeeff00",
+			},
+		]);
+	});
+
+	it("encodes timeValue on save for a time field", async () => {
+		mockClient.POST.mockResolvedValue({ data: {}, error: undefined });
+		renderEditor();
+		changeField("field-flags.cutover", "Cutover", "2025-06-01T00:00:00Z");
+		fireEvent.click(screen.getByRole("button", { name: /Save batch/ }));
+		await waitFor(() => expect(mockClient.POST).toHaveBeenCalledTimes(1));
+		expect(mockClient.POST.mock.calls[0][1].body.updates).toEqual([
+			{
+				fieldPath: "flags.cutover",
+				value: { timeValue: "2025-06-01T00:00:00Z" },
+				expectedChecksum: "99aabbcc",
+			},
+		]);
+	});
+
+	it("encodes durationValue on save for a duration field", async () => {
+		mockClient.POST.mockResolvedValue({ data: {}, error: undefined });
+		renderEditor();
+		changeField("field-settlement.window", "Window", "12h");
+		fireEvent.click(screen.getByRole("button", { name: /Save batch/ }));
+		await waitFor(() => expect(mockClient.POST).toHaveBeenCalledTimes(1));
+		expect(mockClient.POST.mock.calls[0][1].body.updates).toEqual([
+			{
+				fieldPath: "settlement.window",
+				value: { durationValue: "12h" },
+				expectedChecksum: "c3d4e5f6",
+			},
+		]);
+	});
+
+	it("encodes urlValue on save for a url field", async () => {
+		mockClient.POST.mockResolvedValue({ data: {}, error: undefined });
+		renderEditor();
+		changeField("field-api.webhook_url", "Webhook URL", "https://new.example.com/hook");
+		fireEvent.click(screen.getByRole("button", { name: /Save batch/ }));
+		await waitFor(() => expect(mockClient.POST).toHaveBeenCalledTimes(1));
+		expect(mockClient.POST.mock.calls[0][1].body.updates).toEqual([
+			{
+				fieldPath: "api.webhook_url",
+				value: { urlValue: "https://new.example.com/hook" },
+				expectedChecksum: "f6071a2b",
+			},
+		]);
+	});
+
+	it("encodes integerValue on save for an int field", async () => {
+		mockClient.POST.mockResolvedValue({ data: {}, error: undefined });
+		renderEditor();
+		changeField("field-payments.retries", "Retries", "7");
+		fireEvent.click(screen.getByRole("button", { name: /Save batch/ }));
+		await waitFor(() => expect(mockClient.POST).toHaveBeenCalledTimes(1));
+		expect(mockClient.POST.mock.calls[0][1].body.updates).toEqual([
+			{ fieldPath: "payments.retries", value: { integerValue: "7" }, expectedChecksum: "07182930" },
+		]);
+	});
+
+	it("uses a 'not set' placeholder for an unset nullable field", () => {
+		renderEditor();
+		const input = within(screen.getByTestId("field-flags.note")).getByLabelText("Note");
+		expect(input).toHaveAttribute("placeholder", expect.stringMatching(/Not set/));
+	});
+
+	it("renders deprecated badge, redirect hint, and default for a deprecated field", () => {
+		renderEditor();
+		const row = screen.getByTestId("field-flags.legacy_mode");
+		expect(within(row).getByText("deprecated")).toBeInTheDocument();
+		expect(within(row).getByText(/Use/)).toBeInTheDocument();
+		expect(within(row).getByText("flags.tier")).toBeInTheDocument();
+		expect(within(row).getByText("off")).toBeInTheDocument();
+	});
+
+	it("toggling a value back to the server value un-stages it (no save bar)", () => {
+		renderEditor();
+		const toggle = within(screen.getByTestId("field-flags.enabled")).getByLabelText("Enabled");
+		fireEvent.click(toggle); // false -> true (staged)
+		expect(screen.getByRole("button", { name: /Save batch/ })).toBeInTheDocument();
+		fireEvent.click(toggle); // true -> false, back to server value (un-staged)
+		expect(screen.queryByRole("button", { name: /Save batch/ })).toBeNull();
+	});
+});
+
+describe("ConfigEditor — loading & error states", () => {
+	it("renders a loading placeholder while any query is loading", async () => {
+		const hooks = await import("../../../lib/hooks");
+		const spy = vi.spyOn(hooks, "useConfig").mockReturnValue({
+			data: undefined,
+			isLoading: true,
+		} as ReturnType<typeof hooks.useConfig>);
+		renderEditor();
+		expect(screen.getByText("Loading config…")).toBeInTheDocument();
+		spy.mockRestore();
+	});
+
+	it("renders the tenant error message when the tenant query fails", async () => {
+		const hooks = await import("../../../lib/hooks");
+		const spy = vi.spyOn(hooks, "useTenant").mockReturnValue({
+			data: undefined,
+			isLoading: false,
+			error: new Error("tenant gone"),
+		} as ReturnType<typeof hooks.useTenant>);
+		renderEditor();
+		expect(screen.getByText(/Error: tenant gone/)).toBeInTheDocument();
+		spy.mockRestore();
+	});
+
+	it("renders nothing when the tenant is absent (no error, not loading)", async () => {
+		const hooks = await import("../../../lib/hooks");
+		const spy = vi.spyOn(hooks, "useTenant").mockReturnValue({
+			data: { tenant: undefined },
+			isLoading: false,
+			error: null,
+		} as ReturnType<typeof hooks.useTenant>);
+		const { container } = renderEditor();
+		expect(container.querySelector('[data-testid="config-editor"]')).toBeNull();
+		spy.mockRestore();
+	});
+});
+
+describe("ConfigEditor — save guards & staging controls", () => {
+	it("keeps Save disabled while any staged field is invalid (blocked path)", () => {
+		mockClient.POST.mockResolvedValue({ data: {}, error: undefined });
+		renderEditor();
+		changeField("field-payments.retries", "Retries", "999");
+		const save = screen.getByRole("button", { name: /Save batch/ });
+		expect(save).toBeDisabled();
+		// Clicking a disabled button is a no-op — the mutation never fires.
+		fireEvent.click(save);
+		expect(mockClient.POST).not.toHaveBeenCalled();
+	});
+
+	it("Discard clears every staged change and hides the save bar", () => {
+		renderEditor();
+		changeField("field-app.name", "Application Name", "Renamed");
+		expect(screen.getByRole("button", { name: /Save batch/ })).toBeInTheDocument();
+		fireEvent.click(screen.getByRole("button", { name: "Discard" }));
+		expect(screen.queryByRole("button", { name: /Save batch/ })).toBeNull();
+	});
+
+	it("'changed only' filters the rows down to staged fields", () => {
+		renderEditor();
+		changeField("field-app.name", "Application Name", "Renamed");
+		fireEvent.click(screen.getByRole("button", { name: /changed only/ }));
+		expect(screen.getByTestId("field-app.name")).toBeInTheDocument();
+		expect(screen.queryByTestId("field-payments.retries")).toBeNull();
+	});
+});
+
+describe("ConfigEditor — non-ABORTED save error", () => {
+	it("surfaces a generic error toast and does not open the resolver", async () => {
+		mockClient.POST.mockResolvedValue({
+			data: undefined,
+			error: { code: 7, message: "permission denied" },
+		});
+		renderEditor();
+		changeField("field-app.name", "Application Name", "Renamed");
+		fireEvent.click(screen.getByRole("button", { name: /Save batch/ }));
+		expect(await screen.findByText("permission denied")).toBeInTheDocument();
+		expect(screen.queryByTestId("conflict-resolver")).toBeNull();
+	});
+});
+
 describe("ConfigEditor — import / export", () => {
 	it("export fetches the config and triggers a download", async () => {
 		mockClient.GET.mockResolvedValue({
@@ -365,5 +604,165 @@ describe("ConfigEditor — import / export", () => {
 		await waitFor(() => expect(clickSpy).toHaveBeenCalled());
 		clickSpy.mockRestore();
 		vi.unstubAllGlobals();
+	});
+
+	it("export decodes a base64 (format: byte) payload before download", async () => {
+		const yaml = "app:\n  name: Demo\n";
+		const b64 = btoa(yaml); // valid base64, length % 4 === 0
+		mockClient.GET.mockResolvedValue({ data: { yamlContent: b64 }, error: undefined });
+		const blobSpy = vi.fn();
+		const clickSpy = vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => {});
+		const OriginalBlob = globalThis.Blob;
+		vi.stubGlobal(
+			"Blob",
+			class extends OriginalBlob {
+				constructor(parts: BlobPart[], opts?: BlobPropertyBag) {
+					blobSpy(parts, opts);
+					super(parts, opts);
+				}
+			},
+		);
+		vi.stubGlobal("URL", {
+			createObjectURL: vi.fn(() => "blob:mock"),
+			revokeObjectURL: vi.fn(),
+		});
+		renderEditor();
+		fireEvent.click(screen.getByRole("button", { name: /Export/ }));
+		await waitFor(() => expect(clickSpy).toHaveBeenCalled());
+		// The blob was built from the DECODED yaml, not the raw base64.
+		expect(blobSpy).toHaveBeenCalledWith([yaml], { type: "application/yaml" });
+		clickSpy.mockRestore();
+		vi.unstubAllGlobals();
+	});
+
+	it("shows an error toast when export fails", async () => {
+		mockClient.GET.mockResolvedValue({
+			data: undefined,
+			error: { message: "export boom" },
+		});
+		renderEditor();
+		fireEvent.click(screen.getByRole("button", { name: /Export/ }));
+		expect(await screen.findByText(/Export failed: export boom/)).toBeInTheDocument();
+	});
+
+	it("import reads a YAML file and POSTs its base64 contents, then toasts success", async () => {
+		mockClient.POST.mockResolvedValue({ data: {}, error: undefined });
+		const { container } = renderEditor();
+		const fileInput = container.querySelector('input[type="file"]') as HTMLInputElement;
+		const file = new File(["app:\n  name: Imported\n"], "config.yaml", {
+			type: "application/yaml",
+		});
+		fireEvent.change(fileInput, { target: { files: [file] } });
+
+		await waitFor(() => expect(mockClient.POST).toHaveBeenCalledTimes(1));
+		const [path, opts] = mockClient.POST.mock.calls[0];
+		expect(path).toBe("/v1/tenants/{tenantId}/config/import");
+		expect(opts.body.mode).toBe("IMPORT_MODE_MERGE");
+		expect(opts.body.yamlContent).toBe(
+			btoa(unescape(encodeURIComponent("app:\n  name: Imported\n"))),
+		);
+		expect(await screen.findByText("Imported config")).toBeInTheDocument();
+		// The input is cleared so the same file can be re-imported.
+		expect(fileInput.value).toBe("");
+	});
+
+	it("does nothing when the file picker is dismissed with no file", () => {
+		const { container } = renderEditor();
+		const fileInput = container.querySelector('input[type="file"]') as HTMLInputElement;
+		fireEvent.change(fileInput, { target: { files: [] } });
+		expect(mockClient.POST).not.toHaveBeenCalled();
+	});
+
+	it("shows an error toast when import fails", async () => {
+		mockClient.POST.mockResolvedValue({
+			data: undefined,
+			error: { message: "bad yaml" },
+		});
+		const { container } = renderEditor();
+		const fileInput = container.querySelector('input[type="file"]') as HTMLInputElement;
+		const file = new File(["broken"], "config.yaml", { type: "application/yaml" });
+		fireEvent.change(fileInput, { target: { files: [file] } });
+		expect(await screen.findByText(/Import failed: bad yaml/)).toBeInTheDocument();
+	});
+});
+
+describe("ConfigEditor — rebase failure paths", () => {
+	it("toasts a 'still conflicting' message when the rebase write is ABORTED again", async () => {
+		// Initial save: ABORTED → opens resolver.
+		mockClient.POST.mockResolvedValueOnce({
+			data: undefined,
+			error: { code: 10, message: "checksum mismatch" },
+		});
+		mockClient.GET.mockResolvedValue(divergedConfig());
+		// Rebase write: ABORTED again.
+		mockClient.POST.mockResolvedValueOnce({
+			data: undefined,
+			error: { code: 10, message: "checksum mismatch again" },
+		});
+
+		renderEditor();
+		changeField("field-payments.fee_rate", "Fee Rate", "2.5");
+		fireEvent.click(screen.getByRole("button", { name: /Save batch/ }));
+
+		const dialog = await screen.findByTestId("conflict-resolver");
+		fireEvent.click(within(dialog).getByRole("button", { name: /Rebase & save/ }));
+
+		expect(await screen.findByText(/Still conflicting/)).toBeInTheDocument();
+	});
+
+	it("toasts a generic error when the rebase write fails for a non-ABORTED reason", async () => {
+		mockClient.POST.mockResolvedValueOnce({
+			data: undefined,
+			error: { code: 10, message: "checksum mismatch" },
+		});
+		mockClient.GET.mockResolvedValue(divergedConfig());
+		mockClient.POST.mockResolvedValueOnce({
+			data: undefined,
+			error: { message: "server exploded" },
+		});
+
+		renderEditor();
+		changeField("field-payments.fee_rate", "Fee Rate", "2.5");
+		fireEvent.click(screen.getByRole("button", { name: /Save batch/ }));
+
+		const dialog = await screen.findByTestId("conflict-resolver");
+		fireEvent.click(within(dialog).getByRole("button", { name: /Rebase & save/ }));
+
+		expect(await screen.findByText("server exploded")).toBeInTheDocument();
+	});
+
+	it("rebases all staged fields when ABORTED but no committed value visibly moved", async () => {
+		// Save is rejected ABORTED, but the re-fetched config is byte-identical
+		// (the default GET mock returns the unchanged values) — the resolver still
+		// opens and lists the staged field so it can be rebased onto fresh checksums.
+		mockClient.POST.mockResolvedValueOnce({
+			data: undefined,
+			error: { code: 10, message: "checksum mismatch" },
+		});
+		// beforeEach already points GET at the unchanged config (version 8).
+		renderEditor();
+		changeField("field-app.name", "Application Name", "Renamed");
+		fireEvent.click(screen.getByRole("button", { name: /Save batch/ }));
+
+		const dialog = await screen.findByTestId("conflict-resolver");
+		const row = within(dialog).getByTestId("conflict-app.name");
+		expect(within(row).getByText("Renamed")).toBeInTheDocument(); // mine
+	});
+
+	it("closes the resolver on Cancel without writing", async () => {
+		mockClient.POST.mockResolvedValueOnce({
+			data: undefined,
+			error: { code: 10, message: "checksum mismatch" },
+		});
+		mockClient.GET.mockResolvedValue(divergedConfig());
+		renderEditor();
+		changeField("field-payments.fee_rate", "Fee Rate", "2.5");
+		fireEvent.click(screen.getByRole("button", { name: /Save batch/ }));
+
+		const dialog = await screen.findByTestId("conflict-resolver");
+		fireEvent.click(within(dialog).getByRole("button", { name: "Cancel" }));
+		await waitFor(() => expect(screen.queryByTestId("conflict-resolver")).toBeNull());
+		// Only the initial save fired.
+		expect(mockClient.POST).toHaveBeenCalledTimes(1);
 	});
 });

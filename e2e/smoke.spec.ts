@@ -54,7 +54,7 @@ test("tenant config page loads", async ({ page, request }) => {
 	const { tenant } = await tenantRes.json();
 
 	await page.goto(`/tenants/${tenant.id}`);
-	await expect(page.getByTestId("tenant-detail-page")).toBeVisible();
+	await expect(page.getByTestId("config-editor")).toBeVisible();
 });
 
 test("API calls succeed through nginx proxy", async ({ page }) => {
