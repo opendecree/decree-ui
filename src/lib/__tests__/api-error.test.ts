@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { formatError, GRPC_CODE_ABORTED, isAbortedConflict } from "../api-error";
+import {
+	formatError,
+	GRPC_CODE_ABORTED,
+	GRPC_CODE_FAILED_PRECONDITION,
+	isAbortedConflict,
+	isRollbackRejected,
+} from "../api-error";
 
 describe("isAbortedConflict", () => {
 	it("recognises a gRPC ABORTED (code 10) status", () => {
@@ -31,6 +37,49 @@ describe("isAbortedConflict", () => {
 	it("returns false for an object with a non-string message and no matching code", () => {
 		expect(isAbortedConflict({ code: 5, message: 123 })).toBe(false);
 		expect(isAbortedConflict({})).toBe(false);
+	});
+});
+
+describe("isRollbackRejected", () => {
+	it("recognises a gRPC FAILED_PRECONDITION (code 9) status", () => {
+		expect(isRollbackRejected({ code: GRPC_CODE_FAILED_PRECONDITION, message: "blocked" })).toBe(
+			true,
+		);
+	});
+
+	it("falls back to the 'lock' message substring when the code is absent", () => {
+		expect(isRollbackRejected({ message: "field api.webhook_url is locked" })).toBe(true);
+	});
+
+	it("falls back to read-only / write-once message substrings (hyphen + space)", () => {
+		expect(isRollbackRejected({ message: "app.version is read-only" })).toBe(true);
+		expect(isRollbackRejected({ message: "app.version is read only" })).toBe(true);
+		expect(isRollbackRejected({ message: "currency is write-once" })).toBe(true);
+		expect(isRollbackRejected({ message: "currency is write once" })).toBe(true);
+	});
+
+	it("falls back to 'immutable' and 're-guard' / 'reguard' substrings", () => {
+		expect(isRollbackRejected({ message: "value is immutable" })).toBe(true);
+		expect(isRollbackRejected({ message: "re-guard failed" })).toBe(true);
+		expect(isRollbackRejected({ message: "reguard rejected" })).toBe(true);
+	});
+
+	it("does NOT mistake a concurrency conflict (ABORTED / checksum) for a rollback rejection", () => {
+		expect(isRollbackRejected({ code: GRPC_CODE_ABORTED, message: "checksum mismatch" })).toBe(
+			false,
+		);
+	});
+
+	it("returns false for an unrelated code + message", () => {
+		expect(isRollbackRejected({ code: 3, message: "invalid argument" })).toBe(false);
+	});
+
+	it("returns false for non-object / message-less / non-string-message errors", () => {
+		expect(isRollbackRejected(null)).toBe(false);
+		expect(isRollbackRejected("locked")).toBe(false);
+		expect(isRollbackRejected(undefined)).toBe(false);
+		expect(isRollbackRejected({})).toBe(false);
+		expect(isRollbackRejected({ code: 5, message: 123 })).toBe(false);
 	});
 });
 
