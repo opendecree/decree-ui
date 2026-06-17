@@ -14,6 +14,7 @@ import { ToastProvider } from "./lib/toast";
 import { Home } from "./pages/Home";
 import { NotFound } from "./pages/NotFound";
 import { SystemOverview } from "./pages/SystemOverview";
+import { SchemaAuthor } from "./pages/schemas/SchemaAuthor";
 import { SchemaDetail } from "./pages/schemas/SchemaDetail";
 import { SchemaImport } from "./pages/schemas/SchemaImport";
 import { SchemaList } from "./pages/schemas/SchemaList";
@@ -79,6 +80,7 @@ export function App() {
 										<Route path="schemas" element={<SchemaList />} />
 										<Route path="schemas/import" element={<SchemaImport />} />
 										<Route path="schemas/:id" element={<SchemaDetail />} />
+										<Route path="schemas/:id/author" element={<SchemaAuthor />} />
 										<Route path="tenants" element={<TenantList />} />
 										<Route path="tenants/create" element={<TenantCreate />} />
 										<Route path="tenants/:id" element={<TenantConfig />} />
