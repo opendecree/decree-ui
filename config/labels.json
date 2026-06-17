@@ -7,9 +7,27 @@
 	"nav.tenants": "Tenants",
 	"nav.myConfig": "My Config",
 	"nav.config": "Configuration",
+	"nav.configEditor": "Config editor",
+	"nav.overview": "System overview",
+	"nav.values": "Values",
 	"nav.history": "History",
+	"nav.fieldLocks": "Field locks",
 	"nav.auditLog": "Audit Log",
 	"nav.usage": "Usage",
+	"nav.schemaReference": "Schema reference",
+
+	"navGroup.operate": "operate",
+	"navGroup.author": "author",
+	"navGroup.govern": "govern",
+	"navGroup.myTenant": "my tenant",
+	"navGroup.read": "read",
+
+	"scope.allTenants": "All tenants",
+	"scope.tenant": "tenant",
+	"scope.scope": "scope",
+	"scope.noTenant": "no tenant",
+
+	"brand.tagline": "config service",
 
 	"schema.singular": "Schema",
 	"schema.plural": "Schemas",

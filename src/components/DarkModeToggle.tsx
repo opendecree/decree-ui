@@ -20,8 +20,9 @@ export function DarkModeToggle({ className }: { className?: string }) {
 		<button
 			type="button"
 			onClick={() => setDark((d) => !d)}
-			className={`rounded p-1.5 text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800${className ? ` ${className}` : ""}`}
+			className={`grid h-8 w-8 place-items-center rounded-sm border border-line bg-surface-2 text-fg-2 hover:border-line-2 hover:bg-surface-3 hover:text-fg${className ? ` ${className}` : ""}`}
 			title={dark ? "Switch to light mode" : "Switch to dark mode"}
+			aria-label={dark ? "Switch to light mode" : "Switch to dark mode"}
 		>
 			{dark ? ICON_SUN : ICON_MOON}
 		</button>

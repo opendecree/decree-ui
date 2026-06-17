@@ -1,10 +1,14 @@
 import { Outlet } from "react-router-dom";
 import { ErrorBoundary } from "./ErrorBoundary";
 
-/** Minimal layout for iframe embedding — no sidebar, no header. */
+/**
+ * Minimal chrome for iframe embedding — no rail, no topbar, just the content on
+ * the design canvas. `embed` is a route (not a layoutMode); the host frame
+ * supplies identity and scope.
+ */
 export function EmbedLayout() {
 	return (
-		<main className="h-screen overflow-auto p-4">
+		<main className="h-screen overflow-auto bg-canvas p-4 text-fg">
 			<ErrorBoundary>
 				<Outlet />
 			</ErrorBoundary>
