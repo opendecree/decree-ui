@@ -1,13 +1,14 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useState } from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
+import { AppShell } from "./components/AppShell";
 import { ConfigOnlyLayout } from "./components/ConfigOnlyLayout";
 import { EmbedLayout } from "./components/EmbedLayout";
 import { ErrorBoundary } from "./components/ErrorBoundary";
-import { Layout } from "./components/Layout";
 import type { AuthState } from "./lib/auth";
 import { AuthContext, loadAuth, saveAuth } from "./lib/auth";
 import { config } from "./lib/config";
+import { resolveEntryPath } from "./lib/nav";
 import { ToastProvider } from "./lib/toast";
 import { Home } from "./pages/Home";
 import { NotFound } from "./pages/NotFound";
@@ -17,7 +18,6 @@ import { SchemaList } from "./pages/schemas/SchemaList";
 import { TenantAudit } from "./pages/tenants/TenantAudit";
 import { TenantConfig } from "./pages/tenants/TenantConfig";
 import { TenantCreate } from "./pages/tenants/TenantCreate";
-import { TenantDetail } from "./pages/tenants/TenantDetail";
 import { TenantHistory } from "./pages/tenants/TenantHistory";
 import { TenantList } from "./pages/tenants/TenantList";
 import { TenantUsage } from "./pages/tenants/TenantUsage";
@@ -31,15 +31,20 @@ const queryClient = new QueryClient({
 	},
 });
 
-/** In single-tenant or config-only mode, redirect home to the tenant detail page. */
-function HomeOrRedirect() {
-	if (
-		(config.layoutMode === "single-tenant" || config.layoutMode === "config-only") &&
-		config.tenantId
-	) {
-		return <Navigate to={`/tenants/${config.tenantId}`} replace />;
+/**
+ * Role-first entry point. The landing destination is derived from the caller's
+ * role (read view / config editor / system overview) rather than a fixed home,
+ * with the deployment pins (tenantId) narrowing the target. superadmin falls
+ * through to Home until the overview screen lands (TODO(#91)).
+ */
+function RoleEntry({ auth }: { auth: AuthState }) {
+	const target = resolveEntryPath(auth.role, { tenantId: config.tenantId || auth.tenantId });
+	if (target === "/") {
+		// TODO(#91): superadmin overview entry — render the system-overview screen
+		// here instead of Home once it exists.
+		return <Home />;
 	}
-	return <Home />;
+	return <Navigate to={target} replace />;
 }
 
 export function App() {
@@ -57,17 +62,18 @@ export function App() {
 					<ErrorBoundary>
 						<Routes>
 							{config.layoutMode === "config-only" ? (
-								/* Config-only layout — header only, no sidebar, for non-technical admin use */
+								/* config-only: brand topbar, no rail. The role dispatcher (TenantConfig)
+								   renders the editor for admins and the read view for read-only roles. */
 								<Route element={<ConfigOnlyLayout />}>
-									<Route index element={<HomeOrRedirect />} />
-									<Route path="tenants/:id" element={<TenantDetail />} />
+									<Route index element={<RoleEntry auth={auth} />} />
+									<Route path="tenants/:id" element={<TenantConfig />} />
 									<Route path="*" element={<NotFound />} />
 								</Route>
 							) : (
 								<>
-									{/* Standard layout with sidebar + header */}
-									<Route element={<Layout />}>
-										<Route index element={<HomeOrRedirect />} />
+									{/* Role-first app shell: tokenized rail + topbar. */}
+									<Route element={<AppShell />}>
+										<Route index element={<RoleEntry auth={auth} />} />
 										<Route path="schemas" element={<SchemaList />} />
 										<Route path="schemas/import" element={<SchemaImport />} />
 										<Route path="schemas/:id" element={<SchemaDetail />} />
@@ -80,9 +86,10 @@ export function App() {
 										<Route path="*" element={<NotFound />} />
 									</Route>
 
-									{/* Embed layout — no sidebar, no header, for iframe use */}
+									{/* embed route — no chrome, for iframe use. Dispatches by role
+									    via TenantConfig, same as the in-app config screen. */}
 									<Route path="embed" element={<EmbedLayout />}>
-										<Route path="tenants/:id" element={<TenantDetail />} />
+										<Route path="tenants/:id" element={<TenantConfig />} />
 										<Route path="tenants/:id/audit" element={<TenantAudit />} />
 										<Route path="tenants/:id/usage" element={<TenantUsage />} />
 										<Route path="schemas/:id" element={<SchemaDetail />} />

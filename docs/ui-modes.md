@@ -1,237 +1,222 @@
-# UI Modes & Personas
+# UI Modes, Roles & Deployment Pins
 
-The decree-ui is designed to be pluggable and customizable. The same codebase serves different users, deployment contexts, and use cases by composing building blocks according to the active mode.
+> **Status: alpha.** OpenDecree is pre-1.0; the IA, config keys, and screens
+> described here are subject to change.
 
-## Personas
+The decree-ui is organized around a single primary axis: **role**. Who you are
+(superadmin / admin / user) determines where you land and what navigation you
+see. On top of that, a deployment narrows the experience with a small set of
+**pins** (`layoutMode`, `tenantId`, `schemaId`, `defaultRole`) injected at
+runtime. Role decides the *shape*; pins decide the *scope*.
 
-| Persona | Role | Cares about | Doesn't care about |
-|---------|------|-------------|-------------------|
-| **Platform Engineer** | superadmin | Schemas, field definitions, constraints, tenants, audit, system health | Pretty config editing UX |
-| **Tenant Admin** | admin | Config values for their tenant, history, rollback | Schemas, other tenants, field types |
-| **App Operator** | user | Reading current config, checking recent changes | Editing, schema management |
-| **Demo Visitor** | admin | Seeing OpenDecree in action, editing values and watching live updates | System internals |
+This replaces the older "resource-tree" model (Schemas → Tenants → Config driven
+by `layoutMode` alone). `layoutMode` still exists — it is one of the pins — but it
+is no longer the primary organizing concept.
 
-## Layout Modes
+## Role is the entry axis
 
-### `full` (default)
+Every session resolves an **entry destination** from the caller's role. This is
+implemented in `src/lib/nav.ts` (`resolveEntryPath`) and exercised by the app
+shell (`src/components/AppShell.tsx`).
 
-**Who:** Platform engineers managing the entire system.
+| Role | Lands on | Today's screen | Rail scope |
+|------|----------|----------------|------------|
+| **superadmin** | System overview | `Home` (interim — overview is [#91]) | All tenants (global) |
+| **admin** | Config editor for the pinned tenant | `TenantDetail` via `TenantConfig` | The pinned tenant |
+| **user** | Read view for the pinned tenant | `ReadView` via `TenantConfig` | The pinned tenant |
 
-**What's visible:**
-- Full sidebar: Home → Schemas → Tenants → per-tenant Config/History/Audit
-- Schema management: create, version, publish, import/export
-- Tenant management: create, assign schema, update version
-- Config editing with full audit trail
-- Debug auth bar (subject, role, tenant selector)
+Resolution rules:
 
-**Navigation:** Home → Schema list → Schema detail → Tenant list → Tenant detail (config)
+- **user / admin** → `/tenants/:id` when a tenant is pinned, else the tenants
+  list (`/tenants`) so they can pick one they're scoped to.
+- **superadmin** → the cross-tenant **system overview**. That screen does not
+  exist yet; until [#91] lands, superadmin falls through to `Home`. The fallthrough
+  is marked `TODO(#91)` in `App.tsx` and `nav.ts`.
 
-### `single-tenant`
+The route `/tenants/:id` always renders the **`TenantConfig` dispatcher**, which
+picks the editor (`TenantDetail`) for roles that `canEditConfig` and the read view
+(`ReadView`) for read-only roles — see `src/lib/permissions.ts`. Rendering one
+component or the other (rather than branching inside one) keeps React hook order
+stable when the active role changes via the debug auth bar.
 
-**Who:** Tenant admins managing config for one specific tenant.
+### Why role-first
 
-**What's visible:**
-- Sidebar: Config, History, Audit Log, Usage (no schema/tenant navigation)
-- Config editor for the pre-selected tenant
-- History and rollback
-- No schema management, no tenant list
-- No "Back to tenants" breadcrumb
+Role gating is the server's contract, not a UI nicety. The 3-layer guard chain
+(`internal/authz`) is: **RolePolicyGuard** (action's minimum role) →
+**TenantScopeGuard** (non-superadmins restricted to assigned tenants) →
+**FieldLockGuard** (locked fields reject admin/user writes). So:
 
-**Hidden:** Home page, schema list, tenant list, tenant creation, schema import
+- **role** determines *which controls exist* — a `user` UI has no write
+  affordances at all (absent, not disabled);
+- **tenant scope** determines *which tenants appear* — a tenant switcher only
+  makes sense for superadmin or a multi-tenant admin;
+- **field locks** determine *which inputs are editable* within a config.
 
-**Configuration:**
+All UI role gating routes through `src/lib/permissions.ts`
+(`canEditConfig` / `canManageSchemas` / `canManageTenants` / `canManageLocks`).
+It is never re-derived inline.
+
+## The rail, per role
+
+The left rail (`AppShell`) is built from `buildRail(role, config)` in `nav.ts` —
+a labelled, grouped set of nav links. There is no shared resource-tree nav.
+
+### superadmin — the rare setup-time user
+
 ```
-LAYOUT_MODE=single-tenant
-TENANT_ID=demo-company
-DEFAULT_ROLE=admin
-```
-
-### `single-schema`
-
-**Who:** Platform engineers managing one schema with multiple tenants.
-
-**What's visible:**
-- Sidebar: Schema detail, Tenant list, per-tenant config
-- Schema versioning, field management
-- Tenant list filtered to this schema
-- No schema list (only one schema)
-
-**Configuration:**
-```
-LAYOUT_MODE=single-schema
-SCHEMA_ID=payroll-service
-```
-
-### `config-only` (planned — #11)
-
-**Who:** Non-technical admins who think of this as "settings."
-
-**What's visible:**
-- Config editor only — the landing page IS the config
-- Edit values, see descriptions
-- No sidebar navigation, no history, no audit
-- No technical concepts (schema, tenant, version)
-- Looks like a product settings page
-
-**Hidden:** Everything except the config editor. History/audit accessible via subtle links if needed.
-
-**Configuration:**
-```
-LAYOUT_MODE=config-only
-TENANT_ID=demo-company
-DEFAULT_ROLE=admin
+scope: ∗ All tenants
+operate
+  System overview        (TODO #91 — Home today)
+author
+  Tenants
+  Schemas
 ```
 
-### `embed` (planned)
+Only superadmin sees schema authoring and tenant lifecycle (create / delete) —
+for admin and user, schemas are invisible infrastructure.
 
-**Who:** Other apps embedding decree config editing in an iframe.
+### admin — one tenant's config owner
 
-**What's visible:**
-- Config editor only, no chrome (no header, no sidebar, no debug bar)
-- Communicates with parent frame via postMessage
-- Auth passed via query params or postMessage
-
-**Configuration:**
 ```
-LAYOUT_MODE=embed
-TENANT_ID=<uuid-or-slug>
-```
-
-## Building Blocks
-
-The UI is composed of reusable building blocks. Each layout mode selects which blocks to include.
-
-### Chrome
-
-| Block | full | single-tenant | single-schema | config-only | embed |
-|-------|------|--------------|---------------|-------------|-------|
-| Top bar (logo + debug) | ✓ | ✓ | ✓ | ✓ | — |
-| Debug auth bar | ✓ | ✓ (locked) | ✓ | hideable | — |
-| Sidebar | full nav | tenant nav | schema nav | — | — |
-| Sidebar footer | ✓ | ✓ | ✓ | — | — |
-
-### Pages
-
-| Block | full | single-tenant | single-schema | config-only | embed |
-|-------|------|--------------|---------------|-------------|-------|
-| Home / dashboard | ✓ | — | — | — | — |
-| Schema list | ✓ | — | — | — | — |
-| Schema detail | ✓ | — | ✓ | — | — |
-| Schema import | ✓ | — | ✓ | — | — |
-| Tenant list | ✓ | — | ✓ | — | — |
-| Tenant create | ✓ | — | ✓ | — | — |
-| Config editor | ✓ | ✓ | ✓ | ✓ | ✓ |
-| Config history | ✓ | ✓ | ✓ | link | — |
-| Audit log | ✓ | ✓ | ✓ | — | — |
-| Usage stats | ✓ | ✓ | ✓ | — | — |
-
-### Config Editor Features
-
-| Feature | full | single-tenant | config-only | embed |
-|---------|------|--------------|-------------|-------|
-| Edit values | ✓ | ✓ | ✓ | ✓ |
-| Field descriptions | ✓ | prominent | prominent | prominent |
-| Field paths | prominent | secondary | hidden | hidden |
-| Type badges | ✓ | subtle | — | — |
-| Lock indicators | ✓ | ✓ | ✓ | ✓ |
-| Constraints display | ✓ | tooltip | tooltip | — |
-| Version selector | ✓ | ✓ | — | — |
-| Import/Export | ✓ | ✓ | — | — |
-| Rollback | ✓ | ✓ | — | — |
-
-## Sidebar Content by Mode
-
-### full
-```
-Home
-Schemas
-  └ [schema-name]
-      ├ Fields
-      ├ Versions
-      └ Tenants
-          └ [tenant-name]
-              ├ Config
-              ├ History
-              ├ Audit Log
-              └ Usage
+scope: <tenant>
+my tenant
+  Config editor
+  History
+govern
+  Audit log
+  Usage
 ```
 
-### single-tenant
+admin can also lock/unlock fields (a `write`, not superadmin-only), but cannot
+write a locked field.
+
+### user — read-only operator
+
 ```
-Config          ← landing page
-History
-Audit Log
-Usage
----
-[footer: version, docs link, "Powered by OpenDecree"]
+scope: <tenant>
+read
+  Values
+  History
+govern
+  Audit log
+  Usage
 ```
 
-### single-schema
-```
-Schema
-  ├ Fields
-  └ Versions
-Tenants
-  └ [tenant-name]
-      ├ Config
-      └ History
----
-[footer]
-```
+## Deployment pins (the runtime config surface)
 
-### config-only
-```
-[no sidebar — config editor is the full page]
-```
+The UI is configured at runtime, not just rebuilt. The Docker entrypoint
+(`deploy/docker-entrypoint.sh`) writes `window.__DECREE_UI_CONFIG__`, read by
+`src/lib/config.ts`. Runtime (Docker) values take precedence over build-time
+(`VITE_*`) values.
+
+| config key | Docker env | Vite env | Purpose | Pin role |
+|---|---|---|---|---|
+| `apiUrl` | `BROWSER_API_URL` | `VITE_API_URL` | API base (empty = same origin via nginx) | backend wiring |
+| `layoutMode` | `LAYOUT_MODE` (def `full`) | `VITE_LAYOUT_MODE` | `full` / `single-schema` / `single-tenant` / `config-only` | **collapse shape** |
+| `tenantId` | `TENANT_ID` (or `_FILE`) | `VITE_TENANT_ID` | pre-selected tenant | **tenant pin** |
+| `schemaId` | `SCHEMA_ID` (or `_FILE`) | `VITE_SCHEMA_ID` | pre-selected schema | **schema pin** |
+| `defaultRole` | `DEFAULT_ROLE` | `VITE_DEFAULT_ROLE` | role in auth header (**empty = superadmin**) | **role pin** |
+| `defaultSubject` | `DEFAULT_SUBJECT` | `VITE_DEFAULT_SUBJECT` | subject in auth header (empty = `admin`) | identity |
+| `logoUrl` | `LOGO_URL` | `VITE_LOGO_URL` | white-label logo (empty = default mark) | brand chrome |
+| `appName` | `APP_NAME` | `VITE_APP_NAME` | white-label name (empty = `labels.json`) | brand chrome |
+| — | — | `VITE_HIDE_DEBUG` | hide the debug auth bar | chrome |
+
+Plus the UI `Theme` (`src/lib/theme.ts`): `appName`, `logoUrl`, and
+`features { schemas, audit, configVersions, fieldLocks, configImportExport }` —
+feature toggles that gate which sections/nav render (the rail footer shows them,
+struck-through when off), complementing the server's `GetServerInfo` feature map.
+
+**Dependency to preserve:** a pinned tenant implies a pinned schema (a tenant
+binds exactly one published schema version). So `tenantId` set ⇒ schema is
+determined; "tenant pinned + schema free" is incoherent.
+
+### `defaultRole` — the role pin
+
+Pinning `defaultRole` locks the deployment to one role's experience. Empty =
+superadmin (the full system view). This is the concrete mechanism behind
+"role = entry point": set it, and entry routing + the rail collapse to that role.
+
+In `config-only`, superadmin is not offered (it would expose schema/tenant
+authoring on a settings-style page); a stored or pinned superadmin role is capped
+to `admin` (`src/lib/auth.ts`).
+
+## `layoutMode` — the collapse shapes
+
+`layoutMode` is a pin that picks how much chrome and breadth the deployment
+exposes. It is **not** the role axis — the same `full` deployment serves all three
+roles via role-first entry.
+
+| `layoutMode` | Who it's for | Chrome | Pins typically set |
+|---|---|---|---|
+| `full` (default) | A multi-everything deployment; superadmin sees the whole system, admin/user are scoped by role | App shell (rail + topbar) | — |
+| `single-schema` | One schema, many tenants | App shell | `schemaId` |
+| `single-tenant` | One tenant, full chrome | App shell | `tenantId`, usually `defaultRole=admin` |
+| `config-only` | Non-technical admins; config presented as a product "settings" page | Topbar only, no rail | `tenantId`, `defaultRole=admin` |
+
+> **`embed` is a route, not a `layoutMode`.** Earlier drafts listed a fifth mode,
+> `embed`. In the code, `LayoutMode = "full" | "single-schema" | "single-tenant"
+> | "config-only"` — there is no `embed` member. Embedding is served by the
+> `/embed/*` **routes** (`src/components/EmbedLayout.tsx`): chrome-free pages for
+> iframe hosts, available regardless of `layoutMode`. The reconciliation: the
+> first four are collapse *shapes* selected by a config key; embedding is a
+> *delivery surface* selected by URL. Both `config-only` and `embed` render the
+> same `TenantConfig` role dispatcher, so role-first behavior holds there too.
+
+## Chrome building blocks
+
+| Block | full / single-* | config-only | embed (route) |
+|-------|-----------------|-------------|---------------|
+| Tokenized rail (brand + scope + role nav + footer) | ✓ | — | — |
+| Topbar (role pill, theme toggle) | ✓ | ✓ | — |
+| Debug auth bar | ✓ (hideable) | hideable | — |
+
+All chrome is built on the design tokens in `src/index.css` (`bg-canvas`,
+`bg-surface`, `text-fg`, `border-line`, `text-accent`, `bg-accent-soft`, the
+semantic `ok`/`warn`/`danger`/`lock` colors, and `font-mono`). Light is the
+default; dark is the `.dark` class on `<html>`.
 
 ## Theming
 
-The UI supports dark/light mode toggle. Future considerations:
-- Custom brand colors via CSS variables
-- Logo customization via env var (URL to logo image)
-- Custom page title via env var
+- Light (default) + dark (`.dark` on `<html>`), toggled in the topbar and
+  persisted to `localStorage`.
+- White-label brand via `logoUrl` + `appName`.
+- Section gating via `features` (and the server's `GetServerInfo` feature map).
 
-## Debug Bar Behavior
+## Debug auth bar behavior
+
+The debug auth bar (`src/components/AuthBar.tsx`) sets the dev-mode metadata
+headers (subject / role / tenant). It is for non-JWT deployments and local dev.
 
 | Mode | Debug bar |
 |------|-----------|
-| full | Visible, all controls editable |
-| single-tenant | Visible but role/tenant locked to config values |
-| config-only | Hidden by default, toggle via keyboard shortcut |
-| embed | Never shown |
+| `full` / `single-*` | Visible; switch role/subject/tenant freely |
+| `config-only` | Visible unless hidden; superadmin excluded from the role list |
+| `embed` route | Never shown |
 
-## Environment Variables Summary
-
-| Variable | Purpose | Default |
-|----------|---------|---------|
-| `API_URL` | Backend URL for nginx proxy | `http://localhost:8080` |
-| `BROWSER_API_URL` | Browser API URL (empty = same origin) | `""` |
-| `LAYOUT_MODE` | UI mode | `full` |
-| `TENANT_ID` | Pre-selected tenant (UUID or slug) | `""` |
-| `TENANT_ID_FILE` | Path to file containing tenant ID (used when `TENANT_ID` is unset) | `""` |
-| `SCHEMA_ID` | Pre-selected schema (UUID or slug) | `""` |
-| `SCHEMA_ID_FILE` | Path to file containing schema ID (used when `SCHEMA_ID` is unset) | `""` |
-| `DEFAULT_ROLE` | Default auth role | `superadmin` |
-| `DEFAULT_SUBJECT` | Default auth subject | `admin` |
+Set `VITE_HIDE_DEBUG` to suppress it.
 
 ## File-based ID injection
 
-`TENANT_ID_FILE` and `SCHEMA_ID_FILE` are a convenience for Docker Compose demos where IDs are written dynamically by a seed container. The env var (`TENANT_ID` / `SCHEMA_ID`) always wins; the file is only read when the env var is empty.
+`TENANT_ID_FILE` / `SCHEMA_ID_FILE` allow file-based injection (k8s secrets /
+configmaps, or a seed container) as a fallback when the env var is empty. The env
+var always wins.
 
 ```yaml
 admin:
   environment:
     LAYOUT_MODE: config-only
     TENANT_ID_FILE: /data/tenant-id
+    DEFAULT_ROLE: admin
   volumes:
     - seed-data:/data:ro
 ```
 
-For real deployments, use the env var directly:
+For real deployments, set the value directly:
 
 ```yaml
 admin:
   environment:
     LAYOUT_MODE: config-only
     TENANT_ID: <uuid>
+    DEFAULT_ROLE: admin
 ```

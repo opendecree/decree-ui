@@ -17,22 +17,22 @@ export function AuthBar() {
 	const needsTenant = auth.role !== "superadmin";
 
 	return (
-		<div className="flex items-center gap-3 rounded border border-dashed border-amber-500/40 bg-amber-500/5 px-3 py-1.5 text-sm">
-			<span className="font-mono text-[10px] font-semibold uppercase tracking-wider text-amber-600 dark:text-amber-400">
+		<div className="flex items-center gap-3 rounded-md border border-dashed border-warn/40 bg-warn-soft px-3 py-1.5 text-sm">
+			<span className="font-mono text-[10px] font-semibold uppercase tracking-wider text-warn">
 				Debug
 			</span>
 			<label className="flex items-center gap-1.5">
-				<span className="text-gray-500 dark:text-gray-400">{label("auth.subject")}</span>
+				<span className="text-fg-2">{label("auth.subject")}</span>
 				<input
 					type="text"
 					value={auth.subject}
 					onChange={(e) => update({ subject: e.target.value })}
-					className="rounded border border-gray-300 bg-transparent px-2 py-1 dark:border-gray-600"
+					className="rounded-sm border border-line bg-transparent px-2 py-1 text-fg"
 					placeholder={DEFAULT_SUBJECT}
 				/>
 			</label>
 			<label className="flex items-center gap-1.5">
-				<span className="text-gray-500 dark:text-gray-400">{label("auth.role")}</span>
+				<span className="text-fg-2">{label("auth.role")}</span>
 				<select
 					value={auth.role}
 					onChange={(e) => {
@@ -43,7 +43,7 @@ export function AuthBar() {
 							update({ role });
 						}
 					}}
-					className="rounded border border-gray-300 bg-white px-2 py-1 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
+					className="rounded-sm border border-line bg-surface px-2 py-1 text-fg"
 				>
 					{availableRoles.map((role) => (
 						<option key={role} value={role}>
@@ -54,15 +54,15 @@ export function AuthBar() {
 			</label>
 			{needsTenant && (
 				<label className="flex items-center gap-1.5">
-					<span className="text-gray-500 dark:text-gray-400">{label("auth.tenantId")}</span>
+					<span className="text-fg-2">{label("auth.tenantId")}</span>
 					<input
 						type="text"
 						value={auth.tenantId ?? ""}
 						onChange={(e) => update({ tenantId: e.target.value || undefined })}
-						className={`w-72 rounded border px-2 py-1 font-mono text-xs ${
-							!auth.tenantId
-								? "border-amber-400 bg-amber-50 dark:border-amber-600 dark:bg-amber-950"
-								: "border-gray-300 bg-transparent dark:border-gray-600"
+						className={`w-72 rounded-sm border px-2 py-1 font-mono text-xs ${
+							auth.tenantId
+								? "border-line bg-transparent text-fg"
+								: "border-warn/60 bg-warn-soft text-fg"
 						}`}
 						placeholder="paste tenant UUID..."
 					/>
