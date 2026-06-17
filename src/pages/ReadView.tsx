@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import type { components } from "../api/schema";
 import {
 	DeprecatedBadge,
@@ -10,16 +10,11 @@ import { SkeletonDetail } from "../components/Skeleton";
 import { fieldTypeColor, fieldTypeIcon, fieldTypeLabel } from "../lib/field-types";
 import { formatDuration, groupFields, typedValueToString } from "../lib/fields";
 import { useAuditLog, useConfig, useSchemaVersion, useTenant } from "../lib/hooks";
+import { type FieldProvenance, resolveFieldProvenance } from "../lib/provenance";
 
 type SchemaField = components["schemas"]["v1SchemaField"];
 type FieldType = components["schemas"]["v1FieldType"];
 type AuditEntry = components["schemas"]["v1AuditEntry"];
-
-interface Provenance {
-	actor: string;
-	time: string;
-	version?: number;
-}
 
 /** Initials for an actor avatar — first two letters of the local part ("carol@acme" → "CA"). */
 function initials(actor: string): string {
@@ -81,20 +76,13 @@ export function ReadView({ tenantId }: { tenantId: string }) {
 		return m;
 	}, [config]);
 
-	// Newest-first audit entries → most-recent change per field (provenance).
-	const provenanceMap = useMemo(() => {
-		const m = new Map<string, Provenance>();
-		for (const e of entries) {
-			if (e.fieldPath && !m.has(e.fieldPath)) {
-				m.set(e.fieldPath, {
-					actor: e.actor ?? "",
-					time: e.createdAt ?? "",
-					version: e.configVersion,
-				});
-			}
-		}
-		return m;
-	}, [entries]);
+	// Per-field provenance: classifies each field as set / explicit-null / unset
+	// from its value presence + the audit log (the only source that distinguishes a
+	// deliberate clear from a never-set field). Computed per field in the row.
+	const provenanceFor = useCallback(
+		(path: string): FieldProvenance => resolveFieldProvenance(path, valueMap.has(path), entries),
+		[valueMap, entries],
+	);
 
 	const groups = useMemo(() => groupFields(fields), [fields]);
 	const setCount = fields.filter((f) => valueMap.has(f.path ?? "")).length;
@@ -180,7 +168,7 @@ export function ReadView({ tenantId }: { tenantId: string }) {
 												field={field}
 												value={valueMap.get(field.path ?? "")}
 												checksum={checksumMap.get(field.path ?? "")}
-												provenance={provenanceMap.get(field.path ?? "")}
+												provenance={provenanceFor(field.path ?? "")}
 											/>
 										))}
 									</div>
@@ -221,11 +209,13 @@ function ValueRow({
 	field: SchemaField;
 	value: string | undefined;
 	checksum: string | undefined;
-	provenance: Provenance | undefined;
+	provenance: FieldProvenance;
 }) {
-	const isSet = value !== undefined;
+	const isSet = provenance.state === "set";
+	const isExplicitNull = provenance.state === "explicit-null";
 	return (
 		<div
+			data-testid={`value-${field.path}`}
 			className={`grid grid-cols-[2.25rem_1fr_auto] gap-3 rounded-[var(--r-md)] border border-line bg-surface p-3 ${
 				field.deprecated ? "opacity-70" : ""
 			}`}
@@ -250,10 +240,25 @@ function ValueRow({
 					{field.readOnly && <ReadOnlyBadge />}
 					{field.sensitive && <SensitiveBadge />}
 					{field.deprecated && <DeprecatedBadge />}
-					{!isSet && (
-						<span className="rounded border border-dashed border-line px-1.5 py-0.5 text-xs text-fg-3">
-							unset
+					{field.nullable && !isSet && (
+						<span className="rounded border border-dashed border-line px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-wide text-fg-3">
+							nullable
 						</span>
+					)}
+					{/* Explicit null and unset read differently — a stored null is a value. */}
+					{isExplicitNull ? (
+						<span
+							data-testid={`null-badge-${field.path}`}
+							className="rounded border border-dashed border-warn/40 bg-warn-soft px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-wide text-warn"
+						>
+							null
+						</span>
+					) : (
+						!isSet && (
+							<span className="rounded border border-dashed border-line px-1.5 py-0.5 text-xs text-fg-3">
+								unset
+							</span>
+						)
 					)}
 				</div>
 				{field.description && <p className="mt-1 text-xs text-fg-2">{field.description}</p>}
@@ -263,20 +268,34 @@ function ValueRow({
 					</p>
 				)}
 				<div className="mt-1.5">
-					<ReadValue value={value} fieldType={field.type} sensitive={field.sensitive} />
+					<ReadValue
+						value={value}
+						fieldType={field.type}
+						sensitive={field.sensitive}
+						explicitNull={isExplicitNull}
+					/>
 				</div>
 			</div>
 
 			<div className="text-right text-xs whitespace-nowrap text-fg-3">
 				{isSet ? (
 					<span className="text-ok">
-						set{provenance?.version ? ` · v${provenance.version}` : ""}
+						set{provenance.version ? ` · v${provenance.version}` : ""}
+					</span>
+				) : isExplicitNull ? (
+					// Provenance distinguishes a deliberate clear from "default".
+					<span className="text-warn">
+						set · null{provenance.version ? ` · v${provenance.version}` : ""}
 					</span>
 				) : (
 					<span>default</span>
 				)}
-				{provenance?.actor && (
+				{!isSet && !isExplicitNull && (
+					<div className="font-mono text-[10px] text-fg-3">provenance: default</div>
+				)}
+				{provenance.actor && (
 					<div className="text-fg-3">
+						{isExplicitNull ? "cleared by " : ""}
 						{provenance.actor}
 						{provenance.time && <> · {timeAgo(provenance.time)}</>}
 					</div>
@@ -291,10 +310,12 @@ function ReadValue({
 	value,
 	fieldType,
 	sensitive,
+	explicitNull,
 }: {
 	value: string | undefined;
 	fieldType?: FieldType;
 	sensitive?: boolean;
+	explicitNull?: boolean;
 }) {
 	// Sensitive = write-only. The server already returns the literal [REDACTED];
 	// render it as-is for every role — no reveal, no fake masking.
@@ -305,6 +326,16 @@ function ReadValue({
 				<span className="font-mono text-[11px] text-fg-3">
 					write-only · never returned by the API
 				</span>
+			</span>
+		);
+	}
+	// Explicit null overrides the schema default — read it as a stored null, not
+	// as "resolving to default" (the unset case below).
+	if (explicitNull) {
+		return (
+			<span className="text-sm text-fg-2">
+				<code className="font-mono">null</code>{" "}
+				<span className="text-fg-3 italic">— overrides the schema default</span>
 			</span>
 		);
 	}
