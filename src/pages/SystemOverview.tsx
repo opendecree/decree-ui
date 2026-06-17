@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import type { components } from "../api/schema";
+import { ChainBreakPanel, type ChainVerification } from "../components/ChainBreakPanel";
 import { SkeletonTable } from "../components/Skeleton";
 import { useAuditLog, useSchemas, useTenants, useUnusedFields } from "../lib/hooks";
 import { label } from "../lib/labels";
@@ -141,6 +142,9 @@ export function SystemOverview() {
 						chainSettled={governanceSettled}
 						tenants={tenants}
 						signals={signals}
+						// No VerifyChain RPC on the gateway yet → no break data to thread.
+						// The broken-chain panel renders its pending-server note.
+						chainVerification={undefined}
 					/>
 				</>
 			)}
@@ -490,12 +494,19 @@ function TrustGovernanceSection({
 	chainSettled,
 	tenants,
 	signals,
+	chainVerification,
 }: {
 	tenantCount: number;
 	auditEntries: number;
 	chainSettled: boolean;
 	tenants: Tenant[];
 	signals: Record<string, TenantSignal>;
+	/**
+	 * Optional chain-verification result. Undefined today: the REST gateway exposes
+	 * no `VerifyChain` RPC, so the broken-chain panel degrades to a pending note.
+	 * Threading a real `breaks[]` here activates the tamper panel unchanged.
+	 */
+	chainVerification?: ChainVerification;
 }) {
 	// Tenants with at least one unused field — the deprecation candidates.
 	const flagged = tenants
@@ -527,12 +538,13 @@ function TrustGovernanceSection({
 					<div className="flex items-center gap-2.5 border-t border-line px-4 py-2.5 font-mono text-[11px] text-fg-3">
 						<span>tamper-evident · SHA-256 linked · epoch 1</span>
 					</div>
-					{/* Honest limitation: the gateway can't independently re-verify yet. */}
-					<div className="border-t border-line bg-surface-2 px-4 py-2.5 text-[11.5px] text-fg-2">
-						The server maintains an append-only, SHA-256-linked audit chain per tenant. Independent
-						chain re-verification is not yet exposed by the REST gateway, so this panel reflects
-						chain <b className="text-fg">activity</b>, not a re-walk.
-					</div>
+					{/*
+					 * Broken-chain (tamper) detail. The gateway exposes no VerifyChain RPC
+					 * yet, so no verification data flows in and the panel degrades to an
+					 * honest pending-server note. It activates unchanged once VerifyChain
+					 * lands and a real `breaks[]` is threaded through `chainVerification`.
+					 */}
+					<ChainBreakPanel verification={chainVerification} />
 				</div>
 
 				{/* unused fields */}

@@ -179,6 +179,93 @@ describe("ConflictResolver — actions", () => {
 	});
 });
 
+describe("ConflictResolver — compare view (the third arm)", () => {
+	it("hides the compare pane by default and reveals it on toggle", () => {
+		renderResolver();
+		const feeRow = screen.getByTestId("conflict-payments.fee_rate");
+		expect(within(feeRow).queryByTestId("conflict-compare-payments.fee_rate")).toBeNull();
+
+		const toggle = within(feeRow).getByTestId("conflict-compare-toggle-payments.fee_rate");
+		expect(toggle).toHaveAttribute("aria-pressed", "false");
+		fireEvent.click(toggle);
+
+		const pane = within(feeRow).getByTestId("conflict-compare-payments.fee_rate");
+		expect(pane).toBeInTheDocument();
+		expect(toggle).toHaveAttribute("aria-pressed", "true");
+		// Side-by-side: theirs (committed) flows into mine (staged).
+		expect(within(within(pane).getByTestId("compare-side-theirs")).getByText("3")).toBeTruthy();
+		expect(within(within(pane).getByTestId("compare-side-mine")).getByText("2.5")).toBeTruthy();
+	});
+
+	it("collapses the compare pane on a second toggle", () => {
+		renderResolver();
+		const feeRow = screen.getByTestId("conflict-payments.fee_rate");
+		const toggle = within(feeRow).getByTestId("conflict-compare-toggle-payments.fee_rate");
+		fireEvent.click(toggle);
+		expect(within(feeRow).getByTestId("conflict-compare-payments.fee_rate")).toBeInTheDocument();
+		fireEvent.click(toggle);
+		expect(within(feeRow).queryByTestId("conflict-compare-payments.fee_rate")).toBeNull();
+	});
+
+	it("renders an empty committed value as (empty) in the compare pane", () => {
+		renderResolver();
+		const retriesRow = screen.getByTestId("conflict-payments.retries");
+		fireEvent.click(within(retriesRow).getByTestId("conflict-compare-toggle-payments.retries"));
+		const pane = within(retriesRow).getByTestId("conflict-compare-payments.retries");
+		// theirs is "" for retries → the theirs side shows (empty).
+		expect(
+			within(within(pane).getByTestId("compare-side-theirs")).getByText("(empty)"),
+		).toBeTruthy();
+	});
+
+	it("compare toggle works independently per field", () => {
+		renderResolver();
+		const feeRow = screen.getByTestId("conflict-payments.fee_rate");
+		fireEvent.click(within(feeRow).getByTestId("conflict-compare-toggle-payments.fee_rate"));
+		// fee compare open, retries compare still closed.
+		expect(within(feeRow).getByTestId("conflict-compare-payments.fee_rate")).toBeInTheDocument();
+		const retriesRow = screen.getByTestId("conflict-payments.retries");
+		expect(within(retriesRow).queryByTestId("conflict-compare-payments.retries")).toBeNull();
+	});
+});
+
+describe("ConflictResolver — sensitive values stay redacted", () => {
+	const sensitiveConflict: FieldConflict[] = [
+		{
+			path: "api.secret",
+			field: {
+				path: "api.secret",
+				title: "API Secret",
+				type: "FIELD_TYPE_STRING",
+				sensitive: true,
+			},
+			mine: "new-super-secret",
+			theirs: "their-secret",
+			freshChecksum: "ff00",
+		},
+	];
+
+	it("never reveals the staged or committed cleartext in the choice cards", () => {
+		renderResolver({ conflicts: sensitiveConflict });
+		const row = screen.getByTestId("conflict-api.secret");
+		expect(within(row).getByText("sensitive")).toBeInTheDocument();
+		// Both choice cards render [REDACTED]; the cleartext is absent.
+		expect(within(row).getAllByText("[REDACTED]").length).toBeGreaterThanOrEqual(2);
+		expect(within(row).queryByText("new-super-secret")).toBeNull();
+		expect(within(row).queryByText("their-secret")).toBeNull();
+	});
+
+	it("keeps both compare sides redacted when comparing a sensitive field", () => {
+		renderResolver({ conflicts: sensitiveConflict });
+		const row = screen.getByTestId("conflict-api.secret");
+		fireEvent.click(within(row).getByTestId("conflict-compare-toggle-api.secret"));
+		const pane = within(row).getByTestId("conflict-compare-api.secret");
+		expect(within(pane).getAllByText("[REDACTED]").length).toBe(2);
+		expect(within(pane).queryByText("new-super-secret")).toBeNull();
+		expect(within(pane).queryByText("their-secret")).toBeNull();
+	});
+});
+
 describe("ConflictResolver — re-seeding on a new conflict set", () => {
 	it("resets choices to 'mine' when the conflict set changes", () => {
 		const { rerender } = renderResolver();

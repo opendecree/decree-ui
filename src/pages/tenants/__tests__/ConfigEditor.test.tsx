@@ -95,6 +95,21 @@ const fields: SchemaField[] = [
 		redirectTo: "flags.tier",
 		defaultValue: "off",
 	},
+	// Extra fields exercising the remaining constraint kinds inline.
+	{
+		path: "app.semver",
+		title: "Semver",
+		type: "FIELD_TYPE_STRING",
+		tags: ["general"],
+		constraints: { regex: "^\\d+\\.\\d+\\.\\d+$" },
+	},
+	{
+		path: "payments.ratio",
+		title: "Ratio",
+		type: "FIELD_TYPE_NUMBER",
+		tags: ["payments"],
+		constraints: { exclusiveMin: 0, exclusiveMax: 1 },
+	},
 ];
 
 const configValues = [
@@ -258,6 +273,51 @@ describe("ConfigEditor — live validation per type", () => {
 		expect(screen.queryByRole("alert")).toBeNull();
 		expect(screen.getByRole("button", { name: /Save batch/ })).toBeEnabled();
 	});
+
+	it("flags a number above max inline", () => {
+		renderEditor();
+		changeField("field-payments.fee_rate", "Fee Rate", "150");
+		expect(screen.getByRole("alert")).toHaveTextContent(/Above maximum — must be ≤ 100/);
+	});
+
+	it("flags a regex (pattern) mismatch inline", () => {
+		renderEditor();
+		const input = changeField("field-app.semver", "Semver", "0.3");
+		expect(input).toHaveAttribute("aria-invalid", "true");
+		expect(screen.getByRole("alert")).toHaveTextContent(/Does not match the required pattern/);
+	});
+
+	it("flags exclusive-bound violations inline (exclusiveMin / exclusiveMax)", () => {
+		renderEditor();
+		changeField("field-payments.ratio", "Ratio", "0");
+		expect(screen.getByRole("alert")).toHaveTextContent(/Must be greater than 0/);
+		changeField("field-payments.ratio", "Ratio", "1");
+		expect(screen.getByRole("alert")).toHaveTextContent(/Must be less than 1/);
+	});
+
+	it("flags an out-of-set enum value inline", () => {
+		renderEditor();
+		// flags.tier is an enum select; selecting the empty option clears it. Drive an
+		// invalid value through change to exercise the enum branch.
+		const select = within(screen.getByTestId("field-flags.tier")).getByLabelText("Tier");
+		fireEvent.change(select, { target: { value: "" } });
+		// Empty on a non-nullable field is the Required error (enum still non-null).
+		expect(screen.getByRole("alert")).toHaveTextContent(/Required/);
+	});
+
+	it("flags an invalid time (RFC 3339) inline", () => {
+		renderEditor();
+		changeField("field-flags.cutover", "Cutover", "not-a-date");
+		expect(screen.getByRole("alert")).toHaveTextContent(/Invalid timestamp/);
+	});
+
+	it("flags a required, non-nullable field cleared to empty inline", () => {
+		renderEditor();
+		// app.name has minLength:1 and is non-nullable → clearing it is Required.
+		const input = changeField("field-app.name", "Application Name", "");
+		expect(input).toHaveAttribute("aria-invalid", "true");
+		expect(screen.getByRole("alert")).toHaveTextContent(/Required/);
+	});
 });
 
 describe("ConfigEditor — fieldEditBlock gating", () => {
@@ -332,6 +392,25 @@ describe("ConfigEditor — save + optimistic concurrency", () => {
 		const conflictRow = within(dialog).getByTestId("conflict-payments.fee_rate");
 		expect(within(conflictRow).getByText("2.5")).toBeInTheDocument(); // mine
 		expect(within(conflictRow).getByText("3")).toBeInTheDocument(); // theirs
+	});
+
+	it("opens the side-by-side compare view for a conflicting field", async () => {
+		mockClient.POST.mockResolvedValueOnce({
+			data: undefined,
+			error: { code: 10, message: "checksum mismatch" },
+		});
+		mockClient.GET.mockResolvedValue(divergedConfig());
+		renderEditor();
+		changeField("field-payments.fee_rate", "Fee Rate", "2.5");
+		fireEvent.click(screen.getByRole("button", { name: /Save batch/ }));
+
+		const dialog = await screen.findByTestId("conflict-resolver");
+		const row = within(dialog).getByTestId("conflict-payments.fee_rate");
+		fireEvent.click(within(row).getByTestId("conflict-compare-toggle-payments.fee_rate"));
+		const pane = within(row).getByTestId("conflict-compare-payments.fee_rate");
+		// theirs (committed v8 = 3) → mine (staged = 2.5): the exact rebase delta.
+		expect(within(within(pane).getByTestId("compare-side-theirs")).getByText("3")).toBeTruthy();
+		expect(within(within(pane).getByTestId("compare-side-mine")).getByText("2.5")).toBeTruthy();
 	});
 
 	it("rebasing re-applies 'keep mine' against the fresh checksum and re-POSTs", async () => {

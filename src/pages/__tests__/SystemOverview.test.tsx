@@ -181,9 +181,14 @@ describe("SystemOverview", () => {
 	it("states the honest chain limitation + names the server follow-up signal", () => {
 		renderOverview();
 		expect(screen.getByText(/SHA-256 linked · epoch 1/)).toBeInTheDocument();
-		expect(
-			screen.getByText(/Independent chain re-verification is not yet exposed by the REST gateway/),
-		).toBeInTheDocument();
+		// The broken-chain panel degrades to a pending-server note (no VerifyChain
+		// RPC on the gateway). The note names the limitation and the follow-up RPC;
+		// it spans a <code> element, so match on the testid container's text.
+		const pending = screen.getByTestId("chain-break-pending");
+		expect(pending).toHaveTextContent(/not yet exposed by the REST gateway/);
+		expect(pending).toHaveTextContent(/VerifyChain/);
+		// No tamper detail is rendered when there is no break data.
+		expect(screen.queryByTestId("chain-break-panel")).toBeNull();
 	});
 
 	it("links flagged tenants to their usage page in the governance panel", () => {
