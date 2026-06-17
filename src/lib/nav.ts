@@ -28,8 +28,9 @@ export interface NavConfig {
  *  - `admin`      -> the config editor for the pinned tenant (`/tenants/:id`,
  *                    dispatched to ConfigEditor). Unpinned admins pick from the
  *                    tenants list.
- *  - `superadmin` -> the system overview. That screen does not exist yet
- *                    (TODO(#91)); until then, the current best landing is Home.
+ *  - `superadmin` -> the cross-tenant system overview at the index route (`/`),
+ *                    which `App` renders for this role. It bypasses tenant scope,
+ *                    so no tenant pin narrows the target.
  */
 export function resolveEntryPath(role: Role, config: NavConfig): string {
 	switch (role) {
@@ -37,8 +38,7 @@ export function resolveEntryPath(role: Role, config: NavConfig): string {
 		case "admin":
 			return config.tenantId ? `/tenants/${config.tenantId}` : "/tenants";
 		default:
-			// TODO(#91): superadmin overview entry — route here once the
-			// system-overview screen lands. Home is the interim landing.
+			// superadmin: the system overview lives at the index route.
 			return "/";
 	}
 }

@@ -5,6 +5,7 @@ import {
 	canManageLocks,
 	canManageSchemas,
 	canManageTenants,
+	canViewSystemOverview,
 	fieldEditBlock,
 } from "../permissions";
 
@@ -91,5 +92,11 @@ describe("schema / tenant / lock management", () => {
 		expect(canManageLocks("superadmin")).toBe(true);
 		expect(canManageLocks("admin")).toBe(true);
 		expect(canManageLocks("user")).toBe(false);
+	});
+
+	it("only superadmin views the system overview", () => {
+		expect(canViewSystemOverview("superadmin")).toBe(true);
+		expect(canViewSystemOverview("admin")).toBe(false);
+		expect(canViewSystemOverview("user")).toBe(false);
 	});
 });

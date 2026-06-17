@@ -1,8 +1,12 @@
 import { expect, test, API_URL, AUTH_HEADERS } from "./fixtures";
 
-test("home page loads", async ({ page }) => {
+test("superadmin lands on the system overview", async ({ page }) => {
+	// E2E auth is role=superadmin, so the index route renders the cross-tenant
+	// system overview (not the interim Home). On a fresh backend with no tenants
+	// or schemas the page shows its empty state, so assert the page testid (the
+	// same load signal the other smoke tests use) rather than data-dependent chrome.
 	await page.goto("/");
-	await expect(page.getByTestId("home-page")).toBeVisible();
+	await expect(page.getByTestId("system-overview-page")).toBeVisible();
 });
 
 test("schemas page loads", async ({ page }) => {
