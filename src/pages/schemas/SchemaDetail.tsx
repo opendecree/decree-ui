@@ -91,6 +91,15 @@ export function SchemaDetail() {
 							<SchemaInfoBlock info={schema.info} />
 						</div>
 						<div className="flex gap-2">
+							{canManageSchemas(auth.role) && (
+								<Link
+									to={`/schemas/${id}/author`}
+									className="rounded bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+									data-testid="author-link"
+								>
+									{schema.published ? "New draft" : "Edit in workbench"}
+								</Link>
+							)}
 							{!schema.published && canManageSchemas(auth.role) && (
 								<button
 									type="button"
