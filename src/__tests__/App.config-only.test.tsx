@@ -18,9 +18,9 @@ vi.mock("../lib/config", () => ({
 }));
 
 // The config-only route dispatches through TenantConfig (the role dispatcher),
-// which picks TenantDetail for editors and ReadView for read-only roles.
-vi.mock("../pages/tenants/TenantDetail", () => ({
-	TenantDetail: () => <div data-testid="tenant-detail" />,
+// which picks ConfigEditor for editors and ReadView for read-only roles.
+vi.mock("../pages/tenants/ConfigEditor", () => ({
+	ConfigEditor: () => <div data-testid="tenant-detail" />,
 }));
 vi.mock("../pages/ReadView", () => ({
 	ReadView: () => <div data-testid="read-view" />,

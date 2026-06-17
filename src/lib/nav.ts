@@ -26,7 +26,7 @@ export interface NavConfig {
  *                    to ReadView). With no pinned tenant there is nothing to read,
  *                    so fall back to the tenants list.
  *  - `admin`      -> the config editor for the pinned tenant (`/tenants/:id`,
- *                    dispatched to TenantDetail). Unpinned admins pick from the
+ *                    dispatched to ConfigEditor). Unpinned admins pick from the
  *                    tenants list.
  *  - `superadmin` -> the system overview. That screen does not exist yet
  *                    (TODO(#91)); until then, the current best landing is Home.
