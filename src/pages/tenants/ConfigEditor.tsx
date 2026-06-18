@@ -217,9 +217,15 @@ export function ConfigEditor({ tenantId }: { tenantId: string }) {
 
 	/** Re-fetch the latest config and compute the conflicting fields for the resolver. */
 	const openConflictResolver = useCallback(async () => {
-		const { data } = await client.GET("/v1/tenants/{tenantId}/config", {
+		const { data, error: err } = await client.GET("/v1/tenants/{tenantId}/config", {
 			params: { path: { tenantId } },
 		});
+		// A failed re-fetch would open the resolver with empty values/checksums; surface
+		// the error and abort instead so the user keeps their staged edits intact.
+		if (err) {
+			toast.error(formatError(err));
+			return;
+		}
 		const fresh = data?.config;
 		const freshValues = new Map<string, string>();
 		const freshChecks = new Map<string, string>();
@@ -254,7 +260,7 @@ export function ConfigEditor({ tenantId }: { tenantId: string }) {
 		}
 		setConflictVersions({ stale: config?.version, fresh: fresh?.version });
 		setConflicts(list);
-	}, [client, tenantId, pending, fieldByPath, serverValueMap, config]);
+	}, [client, tenantId, pending, fieldByPath, serverValueMap, config, toast]);
 
 	const saveMutation = useMutation({
 		mutationFn: async () => {
@@ -279,9 +285,12 @@ export function ConfigEditor({ tenantId }: { tenantId: string }) {
 	// them, and re-submit. "take theirs" fields are dropped (the server value wins).
 	const rebaseMutation = useMutation({
 		mutationFn: async (resolutions: Map<string, Resolution>) => {
-			const { data } = await client.GET("/v1/tenants/{tenantId}/config", {
+			const { data, error: err } = await client.GET("/v1/tenants/{tenantId}/config", {
 				params: { path: { tenantId } },
 			});
+			// Without the fresh checksums a re-submit would carry missing ones; throw so
+			// onError surfaces it rather than POSTing against an empty freshChecks map.
+			if (err) throw err;
 			const freshChecks = new Map<string, string>();
 			for (const cv of data?.config?.values ?? []) {
 				if (cv.fieldPath && cv.checksum) freshChecks.set(cv.fieldPath, cv.checksum);
