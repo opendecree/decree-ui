@@ -7,6 +7,10 @@ import { typedValueToString } from "./fields";
 type ConfigChange = components["schemas"]["v1ConfigChange"];
 type AuditEntry = components["schemas"]["v1AuditEntry"];
 
+/** Cap on retained live changes: the read-view feed only shows recent activity, so
+ * keeping an unbounded history just grows memory and re-render cost for no benefit. */
+export const MAX_LIVE_CHANGES = 200;
+
 /** Whether a streamed change cleared the field (a deliberate write of null). */
 export function isStreamClear(change: ConfigChange): boolean {
 	const hadOld = change.oldValue !== undefined && typedValueToString(change.oldValue) !== "";
@@ -195,7 +199,7 @@ export function useConfigStream(tenantId: string): ConfigStream {
 				}
 				const change = frame.result?.change;
 				if (change && !cancelled) {
-					setChanges((prev) => [change, ...prev]);
+					setChanges((prev) => [change, ...prev].slice(0, MAX_LIVE_CHANGES));
 				}
 			};
 

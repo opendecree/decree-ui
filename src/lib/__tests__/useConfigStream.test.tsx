@@ -4,6 +4,7 @@ import type { components } from "../../api/schema";
 import {
 	changeToAuditEntry,
 	isStreamClear,
+	MAX_LIVE_CHANGES,
 	streamTouchedPaths,
 	streamValueOverlay,
 	useConfigStream,
@@ -145,6 +146,28 @@ describe("useConfigStream — live path", () => {
 		// Newest event is first (line-buffered parse stitched the split frame).
 		expect(result.current.changes[0].fieldPath).toBe("c");
 		expect(result.current.changes[2].fieldPath).toBe("a");
+	});
+
+	it("caps retained changes at MAX_LIVE_CHANGES, keeping the newest", async () => {
+		// Stream more frames than the cap; each carries a monotonically rising version.
+		const total = MAX_LIVE_CHANGES + 50;
+		const frames = Array.from({ length: total }, (_unused, i) =>
+			frame({ fieldPath: `f${i}`, version: i }),
+		);
+		globalThis.fetch = vi.fn(
+			async () => new Response(streamOf(frames), { status: 200 }),
+		) as typeof fetch;
+
+		const { result } = renderHook(() => useConfigStream("t1"));
+
+		await waitFor(() => expect(result.current.changes.length).toBe(MAX_LIVE_CHANGES));
+		// The buffer never exceeds the cap, and the newest event sits at index 0.
+		expect(result.current.changes.length).toBe(MAX_LIVE_CHANGES);
+		expect(result.current.changes[0].fieldPath).toBe(`f${total - 1}`);
+		// The oldest retained entry is the start of the newest window, not f0.
+		expect(result.current.changes[MAX_LIVE_CHANGES - 1].fieldPath).toBe(
+			`f${total - MAX_LIVE_CHANGES}`,
+		);
 	});
 
 	it("reports status 'live' while the stream is open", async () => {
