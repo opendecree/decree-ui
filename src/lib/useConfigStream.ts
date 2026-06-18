@@ -50,12 +50,14 @@ export function streamTouchedPaths(changes: ConfigChange[]): Set<string> {
  * Adapt a streamed `v1ConfigChange` to the `v1AuditEntry` shape the recent-changes
  * feed already renders, so live items and historical ones share one renderer. The
  * change carries `TypedValue` old/new values (the feed reads strings) and a
- * synthetic id keeps React keys stable across re-renders.
+ * synthetic id derived from change-intrinsic fields (tenant, version, field path,
+ * changedAt) keeps React keys stable across re-renders — the buffer is prepend-only,
+ * so the id must not depend on the change's position in the array.
  */
-export function changeToAuditEntry(change: ConfigChange, index: number): AuditEntry {
+export function changeToAuditEntry(change: ConfigChange): AuditEntry {
 	const cleared = isStreamClear(change);
 	return {
-		id: `live-${change.tenantId ?? ""}-${change.version ?? ""}-${change.fieldPath ?? ""}-${index}`,
+		id: `live-${change.tenantId ?? ""}-${change.version ?? ""}-${change.fieldPath ?? ""}-${change.changedAt ?? ""}`,
 		tenantId: change.tenantId,
 		actor: change.changedBy,
 		action: cleared ? "clear_field" : "set_field",

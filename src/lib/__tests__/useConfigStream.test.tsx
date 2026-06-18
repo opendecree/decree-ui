@@ -94,18 +94,15 @@ describe("useConfigStream — pure helpers", () => {
 	});
 
 	it("changeToAuditEntry adapts a change to the audit-entry shape", () => {
-		const entry = changeToAuditEntry(
-			{
-				tenantId: "t1",
-				version: 9,
-				fieldPath: "payments.enabled",
-				oldValue: { boolValue: false },
-				newValue: { boolValue: true },
-				changedBy: "carol@acme",
-				changedAt: "2026-06-15T00:00:00Z",
-			},
-			0,
-		);
+		const entry = changeToAuditEntry({
+			tenantId: "t1",
+			version: 9,
+			fieldPath: "payments.enabled",
+			oldValue: { boolValue: false },
+			newValue: { boolValue: true },
+			changedBy: "carol@acme",
+			changedAt: "2026-06-15T00:00:00Z",
+		});
 		expect(entry).toMatchObject({
 			actor: "carol@acme",
 			action: "set_field",
@@ -118,11 +115,39 @@ describe("useConfigStream — pure helpers", () => {
 	});
 
 	it("changeToAuditEntry marks a clear as clear_field", () => {
-		const entry = changeToAuditEntry(
-			{ fieldPath: "x", oldValue: { stringValue: "v" }, newValue: { stringValue: "" } },
-			1,
-		);
+		const entry = changeToAuditEntry({
+			fieldPath: "x",
+			oldValue: { stringValue: "v" },
+			newValue: { stringValue: "" },
+		});
 		expect(entry.action).toBe("clear_field");
+	});
+
+	it("changeToAuditEntry derives a stable id from change fields, independent of position", () => {
+		const change: ConfigChange = {
+			tenantId: "t1",
+			version: 9,
+			fieldPath: "payments.enabled",
+			newValue: { boolValue: true },
+			changedAt: "2026-06-15T00:00:00Z",
+		};
+		// The buffer is prepend-only: a newer change shifts the original's index.
+		const newer: ConfigChange = {
+			tenantId: "t1",
+			version: 10,
+			fieldPath: "payments.fee",
+			newValue: { stringValue: "1" },
+			changedAt: "2026-06-15T00:01:00Z",
+		};
+
+		// id when the change is the only (index 0) entry…
+		const before = changeToAuditEntry(change);
+		// …and after a delta is prepended, pushing it to index 1.
+		const after = [newer, change].map((c) => changeToAuditEntry(c));
+
+		expect(after[1].id).toBe(before.id);
+		// Distinct changes still get distinct ids, so React keys stay unique.
+		expect(after[0].id).not.toBe(after[1].id);
 	});
 });
 
