@@ -27,7 +27,7 @@ export function validateField(field: SchemaField, value: string): string | null 
 	}
 
 	// Enum applies to any type.
-	if (c.enumValues && c.enumValues.length > 0 && !c.enumValues.includes(value)) {
+	if (c.enumValues && c.enumValues.length > 0 && !c.enumValues.includes(trimmed)) {
 		return `Must be one of: ${c.enumValues.join(", ")}.`;
 	}
 
@@ -37,7 +37,7 @@ export function validateField(field: SchemaField, value: string): string | null 
 		case "FIELD_TYPE_NUMBER":
 			return validateNumber(trimmed, c);
 		case "FIELD_TYPE_BOOL":
-			return value === "true" || value === "false" ? null : 'Must be "true" or "false".';
+			return trimmed === "true" || trimmed === "false" ? null : 'Must be "true" or "false".';
 		case "FIELD_TYPE_STRING":
 			return validateString(value, c);
 		case "FIELD_TYPE_DURATION":
