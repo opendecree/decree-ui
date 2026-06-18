@@ -85,7 +85,7 @@ export function ReadView({ tenantId }: { tenantId: string }) {
 	// the audit-entry shape so the recent-changes feed renders them with one renderer.
 	const valueOverlay = useMemo(() => streamValueOverlay(changes), [changes]);
 	const touchedPaths = useMemo(() => streamTouchedPaths(changes), [changes]);
-	const liveEntries = useMemo(() => changes.map((c, i) => changeToAuditEntry(c, i)), [changes]);
+	const liveEntries = useMemo(() => changes.map((c) => changeToAuditEntry(c)), [changes]);
 
 	// Live entries are newest-first already; prepend them to the polled audit log so
 	// provenance and the feed both see the most recent change first.
