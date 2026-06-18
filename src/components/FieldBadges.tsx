@@ -2,7 +2,7 @@
 
 export function DeprecatedBadge() {
 	return (
-		<span className="rounded bg-red-100 px-1.5 py-0.5 text-xs font-medium text-red-700 dark:bg-red-900 dark:text-red-300">
+		<span className="rounded bg-danger-soft px-1.5 py-0.5 text-xs font-medium text-danger">
 			Deprecated
 		</span>
 	);
@@ -10,7 +10,7 @@ export function DeprecatedBadge() {
 
 export function ReadOnlyBadge() {
 	return (
-		<span className="rounded bg-gray-100 px-1.5 py-0.5 text-xs font-medium text-gray-600 dark:bg-gray-800 dark:text-gray-400">
+		<span className="rounded bg-surface-3 px-1.5 py-0.5 text-xs font-medium text-fg-2">
 			Read-only
 		</span>
 	);
@@ -18,7 +18,7 @@ export function ReadOnlyBadge() {
 
 export function WriteOnceBadge({ hasValue }: { hasValue?: boolean }) {
 	return (
-		<span className="rounded bg-purple-100 px-1.5 py-0.5 text-xs font-medium text-purple-700 dark:bg-purple-900 dark:text-purple-300">
+		<span className="rounded bg-lock-soft px-1.5 py-0.5 text-xs font-medium text-lock">
 			{hasValue ? "Immutable" : "Write-once"}
 		</span>
 	);
@@ -26,7 +26,7 @@ export function WriteOnceBadge({ hasValue }: { hasValue?: boolean }) {
 
 export function SensitiveBadge() {
 	return (
-		<span className="rounded bg-amber-100 px-1.5 py-0.5 text-xs font-medium text-amber-700 dark:bg-amber-900 dark:text-amber-300">
+		<span className="rounded bg-warn-soft px-1.5 py-0.5 text-xs font-medium text-warn">
 			Sensitive
 		</span>
 	);
