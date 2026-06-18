@@ -845,3 +845,52 @@ describe("ConfigEditor — rebase failure paths", () => {
 		expect(mockClient.POST).toHaveBeenCalledTimes(1);
 	});
 });
+
+describe("ConfigEditor — conflict re-fetch failure", () => {
+	it("surfaces a toast and does not open the resolver when the re-fetch GET fails", async () => {
+		// Save is rejected ABORTED, but the config re-fetch then fails. The resolver
+		// must NOT open with empty values/checksums — the error is surfaced instead.
+		mockClient.POST.mockResolvedValueOnce({
+			data: undefined,
+			error: { code: 10, message: "checksum mismatch" },
+		});
+		mockClient.GET.mockResolvedValue({
+			data: undefined,
+			error: { message: "re-fetch boom" },
+		});
+
+		renderEditor();
+		changeField("field-payments.fee_rate", "Fee Rate", "2.5");
+		fireEvent.click(screen.getByRole("button", { name: /Save batch/ }));
+
+		expect(await screen.findByText("re-fetch boom")).toBeInTheDocument();
+		expect(screen.queryByTestId("conflict-resolver")).toBeNull();
+		// The staged edit survives — only the initial save POST fired.
+		expect(mockClient.POST).toHaveBeenCalledTimes(1);
+	});
+
+	it("surfaces the rebase via onError when the rebase re-fetch GET fails", async () => {
+		// Initial save: ABORTED → the first GET succeeds and opens the resolver.
+		mockClient.POST.mockResolvedValueOnce({
+			data: undefined,
+			error: { code: 10, message: "checksum mismatch" },
+		});
+		mockClient.GET.mockResolvedValueOnce(divergedConfig());
+		// Rebase re-fetch: fails, so nothing is re-submitted with missing checksums.
+		mockClient.GET.mockResolvedValueOnce({
+			data: undefined,
+			error: { message: "rebase fetch boom" },
+		});
+
+		renderEditor();
+		changeField("field-payments.fee_rate", "Fee Rate", "2.5");
+		fireEvent.click(screen.getByRole("button", { name: /Save batch/ }));
+
+		const dialog = await screen.findByTestId("conflict-resolver");
+		fireEvent.click(within(dialog).getByRole("button", { name: /Rebase & save/ }));
+
+		expect(await screen.findByText("rebase fetch boom")).toBeInTheDocument();
+		// No batchSet against empty checksums — only the initial save POST ever fired.
+		expect(mockClient.POST).toHaveBeenCalledTimes(1);
+	});
+});
