@@ -37,6 +37,11 @@ describe("validateField — enum (any type)", () => {
 		const f = field("FIELD_TYPE_STRING", { enumValues: ["USD", "EUR"] });
 		expect(validateField(f, "JPY")).toMatch(/Must be one of: USD, EUR\./);
 	});
+
+	it("accepts a whitespace-padded enum value (compared against the trimmed value)", () => {
+		const f = field("FIELD_TYPE_STRING", { enumValues: ["USD", "EUR"] });
+		expect(validateField(f, " USD ")).toBeNull();
+	});
 });
 
 describe("validateField — int", () => {
@@ -96,6 +101,10 @@ describe("validateField — bool", () => {
 		expect(validateField(field("FIELD_TYPE_BOOL"), "true")).toBeNull();
 		expect(validateField(field("FIELD_TYPE_BOOL"), "false")).toBeNull();
 		expect(validateField(field("FIELD_TYPE_BOOL"), "yes")).toMatch(/Must be "true" or "false"/);
+	});
+
+	it("accepts a whitespace-padded bool value (compared against the trimmed value)", () => {
+		expect(validateField(field("FIELD_TYPE_BOOL"), " true ")).toBeNull();
 	});
 });
 
