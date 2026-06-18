@@ -11,6 +11,12 @@ import { fieldTypeColor, fieldTypeIcon, fieldTypeLabel } from "../lib/field-type
 import { formatDuration, groupFields, typedValueToString } from "../lib/fields";
 import { useAuditLog, useConfig, useSchemaVersion, useTenant } from "../lib/hooks";
 import { type FieldProvenance, resolveFieldProvenance } from "../lib/provenance";
+import {
+	changeToAuditEntry,
+	streamTouchedPaths,
+	streamValueOverlay,
+	useConfigStream,
+} from "../lib/useConfigStream";
 
 type SchemaField = components["schemas"]["v1SchemaField"];
 type FieldType = components["schemas"]["v1FieldType"];
@@ -57,24 +63,61 @@ export function ReadView({ tenantId }: { tenantId: string }) {
 
 	const { data: auditData } = useAuditLog(tenantId);
 
+	// Live config subscription (server `Subscribe` RPC via the gateway). It is the
+	// live path; the query hooks above remain the fallback — when the stream can't
+	// open or errors, `status` is "fallback" and the read view runs on query data.
+	const { changes, status } = useConfigStream(tenantId);
+	const isLive = status === "live";
+
 	const fields = useMemo(() => schema?.fields ?? [], [schema]);
-	const entries = useMemo(() => auditData?.entries ?? [], [auditData]);
+
+	// Sensitive (write-only) field paths. The server redacts these on the value path,
+	// but the changes feed renders old→new deltas raw — so the feed must redact them
+	// too, lest a streamed (or audited) delta leak a value the value pane hides.
+	const sensitivePaths = useMemo(() => {
+		const s = new Set<string>();
+		for (const f of fields) if (f.sensitive && f.path) s.add(f.path);
+		return s;
+	}, [fields]);
+
+	// Streamed deltas overlaid on the polled data: live values win over query values,
+	// touched paths drop their now-stale checksum, and live changes are adapted to
+	// the audit-entry shape so the recent-changes feed renders them with one renderer.
+	const valueOverlay = useMemo(() => streamValueOverlay(changes), [changes]);
+	const touchedPaths = useMemo(() => streamTouchedPaths(changes), [changes]);
+	const liveEntries = useMemo(() => changes.map((c, i) => changeToAuditEntry(c, i)), [changes]);
+
+	// Live entries are newest-first already; prepend them to the polled audit log so
+	// provenance and the feed both see the most recent change first.
+	const entries = useMemo(
+		() => [...liveEntries, ...(auditData?.entries ?? [])],
+		[liveEntries, auditData],
+	);
 
 	const valueMap = useMemo(() => {
 		const m = new Map<string, string>();
 		for (const cv of config?.values ?? []) {
 			if (cv.fieldPath) m.set(cv.fieldPath, typedValueToString(cv.value));
 		}
+		// Overlay live values: a string overrides, an explicit-null clear removes the
+		// value (so the row reads as a stored null via the audit-derived provenance).
+		for (const [path, value] of valueOverlay) {
+			if (value === null) m.delete(path);
+			else m.set(path, value);
+		}
 		return m;
-	}, [config]);
+	}, [config, valueOverlay]);
 
 	const checksumMap = useMemo(() => {
 		const m = new Map<string, string>();
 		for (const cv of config?.values ?? []) {
 			if (cv.fieldPath && cv.checksum) m.set(cv.fieldPath, cv.checksum);
 		}
+		// The change event carries no checksum, so a live-updated field's old checksum
+		// is stale — drop it rather than show a value that no longer matches.
+		for (const path of touchedPaths) m.delete(path);
 		return m;
-	}, [config]);
+	}, [config, touchedPaths]);
 
 	// Per-field provenance: classifies each field as set / explicit-null / unset
 	// from its value presence + the audit log (the only source that distinguishes a
@@ -120,9 +163,15 @@ export function ReadView({ tenantId }: { tenantId: string }) {
 							</code>
 						</>
 					)}
-					{config && <> — config v{config.version}.</>} You're viewing, not editing.
+					{config && <> — config v{config.version}.</>}{" "}
+					{isLive
+						? "Values stream live; you're viewing, not editing."
+						: "You're viewing, not editing."}
 				</span>
-				<span className="ml-auto rounded-[var(--r-pill)] border border-line bg-surface px-2.5 py-0.5 text-xs font-medium text-fg-2">
+				{isLive && <LiveDot className="ml-auto" />}
+				<span
+					className={`rounded-[var(--r-pill)] border border-line bg-surface px-2.5 py-0.5 text-xs font-medium text-fg-2 ${isLive ? "" : "ml-auto"}`}
+				>
 					read-only
 				</span>
 			</div>
@@ -169,6 +218,7 @@ export function ReadView({ tenantId }: { tenantId: string }) {
 												value={valueMap.get(field.path ?? "")}
 												checksum={checksumMap.get(field.path ?? "")}
 												provenance={provenanceFor(field.path ?? "")}
+												live={touchedPaths.has(field.path ?? "")}
 											/>
 										))}
 									</div>
@@ -182,16 +232,29 @@ export function ReadView({ tenantId }: { tenantId: string }) {
 				<aside className="w-full shrink-0 lg:w-80">
 					<div className="mb-3 flex items-center gap-2">
 						<h2 className="text-sm font-semibold text-fg">Recent changes</h2>
+						{isLive && <LiveDot className="ml-auto" />}
 					</div>
 					<div className="space-y-1.5">
 						{entries.length === 0 && <p className="text-xs text-fg-3">No recorded changes yet.</p>}
-						{entries.map((e) => (
-							<FeedItem key={e.id} entry={e} />
+						{entries.map((e, i) => (
+							<FeedItem
+								key={e.id}
+								entry={e}
+								live={isLive && i < liveEntries.length}
+								sensitive={!!e.fieldPath && sensitivePaths.has(e.fieldPath)}
+							/>
 						))}
 					</div>
 					{entries.length > 0 && (
 						<p className="mt-3 font-mono text-[11px] text-fg-3">
-							{entries.length} recent entries · audited
+							{isLive ? (
+								<>
+									streaming via <span className="text-fg-2">Subscribe</span> · {entries.length}{" "}
+									entries · audited
+								</>
+							) : (
+								<>{entries.length} recent entries · audited</>
+							)}
 						</p>
 					)}
 				</aside>
@@ -200,25 +263,58 @@ export function ReadView({ tenantId }: { tenantId: string }) {
 	);
 }
 
+/**
+ * The "live" connection indicator — a pulsing `ok`-toned dot. Shown in the banner
+ * and the feed head only while the `Subscribe` stream is open; in fallback (refetch)
+ * mode it is absent, so the dot is an honest signal that values are streaming.
+ */
+function LiveDot({ className = "" }: { className?: string }) {
+	return (
+		<span
+			data-testid="live-indicator"
+			className={`inline-flex items-center gap-1.5 rounded-[var(--r-pill)] bg-ok-soft px-2 py-0.5 text-xs font-medium text-ok ${className}`}
+		>
+			<span className="relative flex h-1.5 w-1.5" aria-hidden="true">
+				<span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-ok opacity-75 motion-reduce:hidden" />
+				<span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-ok" />
+			</span>
+			live
+		</span>
+	);
+}
+
+/** A small "live" pill marking a row/feed item touched by a live stream event. */
+function LiveBadge() {
+	return (
+		<span className="inline-flex items-center gap-1 rounded-[var(--r-pill)] bg-ok-soft px-1.5 py-0.5 font-mono text-[10px] font-medium text-ok">
+			<span className="h-1 w-1 rounded-full bg-ok" aria-hidden="true" />
+			live
+		</span>
+	);
+}
+
 function ValueRow({
 	field,
 	value,
 	checksum,
 	provenance,
+	live = false,
 }: {
 	field: SchemaField;
 	value: string | undefined;
 	checksum: string | undefined;
 	provenance: FieldProvenance;
+	live?: boolean;
 }) {
 	const isSet = provenance.state === "set";
 	const isExplicitNull = provenance.state === "explicit-null";
 	return (
 		<div
 			data-testid={`value-${field.path}`}
-			className={`grid grid-cols-[2.25rem_1fr_auto] gap-3 rounded-[var(--r-md)] border border-line bg-surface p-3 ${
-				field.deprecated ? "opacity-70" : ""
-			}`}
+			data-live={live ? "true" : undefined}
+			className={`grid grid-cols-[2.25rem_1fr_auto] gap-3 rounded-[var(--r-md)] border bg-surface p-3 transition-colors duration-700 ${
+				live ? "border-ok/50 bg-ok-soft" : "border-line"
+			} ${field.deprecated ? "opacity-70" : ""}`}
 		>
 			<span
 				title={fieldTypeLabel(field.type)}
@@ -240,6 +336,7 @@ function ValueRow({
 					{field.readOnly && <ReadOnlyBadge />}
 					{field.sensitive && <SensitiveBadge />}
 					{field.deprecated && <DeprecatedBadge />}
+					{live && <LiveBadge />}
 					{field.nullable && !isSet && (
 						<span className="rounded border border-dashed border-line px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-wide text-fg-3">
 							nullable
@@ -383,10 +480,23 @@ function ReadValue({
 	return <span className="text-sm text-fg">{value}</span>;
 }
 
-function FeedItem({ entry }: { entry: AuditEntry }) {
+function FeedItem({
+	entry,
+	live = false,
+	sensitive = false,
+}: {
+	entry: AuditEntry;
+	live?: boolean;
+	sensitive?: boolean;
+}) {
 	const isRollback = entry.action === "rollback";
 	return (
-		<div className="flex gap-2.5 rounded-[var(--r-md)] border border-line bg-surface p-2.5">
+		<div
+			data-live={live ? "true" : undefined}
+			className={`flex gap-2.5 rounded-[var(--r-md)] border bg-surface p-2.5 ${
+				live ? "border-ok/50 bg-ok-soft" : "border-line"
+			}`}
+		>
 			<span
 				className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-accent-soft font-mono text-[11px] font-semibold text-accent"
 				aria-hidden="true"
@@ -397,6 +507,7 @@ function FeedItem({ entry }: { entry: AuditEntry }) {
 				<div className="flex items-center gap-1.5">
 					<b className="font-semibold text-fg">{entry.actor}</b>
 					<span className="text-fg-3">{entry.action}</span>
+					{live && <LiveBadge />}
 					<span className="ml-auto text-fg-3">{timeAgo(entry.createdAt ?? "")}</span>
 				</div>
 				<div className="mt-0.5 text-fg-2">
@@ -407,12 +518,21 @@ function FeedItem({ entry }: { entry: AuditEntry }) {
 					) : entry.fieldPath ? (
 						<>
 							set <code className="font-mono">{entry.fieldPath}</code>
-							{entry.oldValue !== undefined && entry.newValue !== undefined && (
+							{sensitive ? (
+								// Write-only field: never surface the old/new delta, even live.
 								<>
 									{" "}
-									<span className="text-fg-3 line-through">{entry.oldValue}</span> →{" "}
-									<span className="text-fg">{entry.newValue}</span>
+									<RedactedValue />
 								</>
+							) : (
+								entry.oldValue !== undefined &&
+								entry.newValue !== undefined && (
+									<>
+										{" "}
+										<span className="text-fg-3 line-through">{entry.oldValue}</span> →{" "}
+										<span className="text-fg">{entry.newValue}</span>
+									</>
+								)
 							)}
 						</>
 					) : (
