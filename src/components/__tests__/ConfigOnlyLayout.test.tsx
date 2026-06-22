@@ -1,8 +1,11 @@
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { beforeAll, describe, expect, it, vi } from "vitest";
 import { AuthContext } from "../../lib/auth";
 import { ConfigOnlyLayout } from "../ConfigOnlyLayout";
+
+const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
 
 vi.mock("../../lib/config", () => ({
 	config: { layoutMode: "config-only", appName: "Test App", logoUrl: "" },
@@ -19,11 +22,13 @@ beforeAll(() => {
 
 function renderLayout() {
 	return render(
-		<MemoryRouter>
-			<AuthContext value={{ auth: { subject: "admin", role: "admin" }, setAuth: () => {} }}>
-				<ConfigOnlyLayout />
-			</AuthContext>
-		</MemoryRouter>,
+		<QueryClientProvider client={queryClient}>
+			<MemoryRouter>
+				<AuthContext value={{ auth: { subject: "admin", role: "admin" }, setAuth: () => {} }}>
+					<ConfigOnlyLayout />
+				</AuthContext>
+			</MemoryRouter>
+		</QueryClientProvider>,
 	);
 }
 

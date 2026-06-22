@@ -1,9 +1,12 @@
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { beforeAll, describe, expect, it, vi } from "vitest";
 import type { AuthState } from "../../lib/auth";
 import { AuthContext } from "../../lib/auth";
 import { AppShell } from "../AppShell";
+
+const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
 
 vi.mock("../../lib/config", () => ({
 	config: { layoutMode: "full", appName: "Test App", logoUrl: "" },
@@ -20,11 +23,13 @@ beforeAll(() => {
 
 function renderShell(auth: AuthState) {
 	return render(
-		<MemoryRouter>
-			<AuthContext value={{ auth, setAuth: () => {} }}>
-				<AppShell />
-			</AuthContext>
-		</MemoryRouter>,
+		<QueryClientProvider client={queryClient}>
+			<MemoryRouter>
+				<AuthContext value={{ auth, setAuth: () => {} }}>
+					<AppShell />
+				</AuthContext>
+			</MemoryRouter>
+		</QueryClientProvider>,
 	);
 }
 

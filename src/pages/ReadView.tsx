@@ -9,7 +9,13 @@ import {
 import { SkeletonDetail } from "../components/Skeleton";
 import { fieldTypeColor, fieldTypeIcon, fieldTypeLabel } from "../lib/field-types";
 import { formatDuration, groupFields, typedValueToString } from "../lib/fields";
-import { useAuditLog, useConfig, useSchemaVersion, useTenant } from "../lib/hooks";
+import {
+	useAuditLog,
+	useConfig,
+	useSchemaVersion,
+	useTenant,
+	useTenantNotFoundFallback,
+} from "../lib/hooks";
 import { type FieldProvenance, resolveFieldProvenance } from "../lib/provenance";
 import {
 	changeToAuditEntry,
@@ -50,6 +56,7 @@ export function ReadView({ tenantId }: { tenantId: string }) {
 	const [showDeprecated, setShowDeprecated] = useState(false);
 
 	const { data: tenantData, isLoading: tenantLoading, error: tenantError } = useTenant(tenantId);
+	useTenantNotFoundFallback(tenantId, tenantError);
 	const tenant = tenantData?.tenant;
 
 	const { data: schemaData, isLoading: schemaLoading } = useSchemaVersion(
