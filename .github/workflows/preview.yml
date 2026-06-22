@@ -1,0 +1,96 @@
+name: PR Preview
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened, closed]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  deploy:
+    name: Deploy preview
+    if: github.event.action != 'closed'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build with PR base path
+        run: npm run build -- --base=/decree-ui/pr-${{ github.event.number }}/
+
+      - name: SPA fallback for client-side routes
+        run: cp dist/index.html dist/404.html
+
+      - name: Deploy to gh-pages
+        # peaceiris/actions-gh-pages@v4.1.0
+        uses: peaceiris/actions-gh-pages@47f197a2200bb9de68ba5f48fad1c088eb1c4a32
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./dist
+          destination_dir: pr-${{ github.event.number }}
+          keep_files: true
+
+      - name: Comment preview URL on PR
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const url = `https://opendecree.github.io/decree-ui/pr-${context.issue.number}/`;
+            const marker = "<!-- pr-preview-url -->";
+            const body = `${marker}\n🔍 Preview deployed: ${url}\n\n_Backend API is not available in this preview — use it to review layout, styling, and static screens. Built from ${context.sha.substring(0, 7)}._`;
+
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+            const existing = comments.find((c) => c.body.includes(marker));
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existing.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body,
+              });
+            }
+
+  cleanup:
+    name: Remove preview
+    if: github.event.action == 'closed'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout gh-pages
+        uses: actions/checkout@v7
+        with:
+          ref: gh-pages
+          persist-credentials: true
+
+      - name: Remove PR preview directory
+        run: |
+          if [ -d "pr-${{ github.event.number }}" ]; then
+            git rm -r "pr-${{ github.event.number }}"
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git commit -m "chore: remove preview for PR #${{ github.event.number }}"
+            git push
+          fi
