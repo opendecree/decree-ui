@@ -3,8 +3,10 @@ import {
 	formatError,
 	GRPC_CODE_ABORTED,
 	GRPC_CODE_FAILED_PRECONDITION,
+	GRPC_CODE_NOT_FOUND,
 	isAbortedConflict,
 	isRollbackRejected,
+	isTenantNotFound,
 } from "../api-error";
 
 describe("isAbortedConflict", () => {
@@ -80,6 +82,35 @@ describe("isRollbackRejected", () => {
 		expect(isRollbackRejected(undefined)).toBe(false);
 		expect(isRollbackRejected({})).toBe(false);
 		expect(isRollbackRejected({ code: 5, message: 123 })).toBe(false);
+	});
+});
+
+describe("isTenantNotFound", () => {
+	it("recognises a gRPC NOT_FOUND (code 5) status", () => {
+		expect(isTenantNotFound({ code: GRPC_CODE_NOT_FOUND, message: "nope" })).toBe(true);
+	});
+
+	it("matches the gateway's 'failed to resolve tenant' message", () => {
+		expect(isTenantNotFound({ message: "failed to resolve tenant" })).toBe(true);
+	});
+
+	it("matches a 'tenant ... not found' message (case-insensitive)", () => {
+		expect(isTenantNotFound({ message: "Tenant acme Not Found" })).toBe(true);
+	});
+
+	it("matches a plain Error rethrown by the data hooks", () => {
+		expect(isTenantNotFound(new Error("failed to resolve tenant"))).toBe(true);
+	});
+
+	it("returns false for an unrelated code + message", () => {
+		expect(isTenantNotFound({ code: 3, message: "invalid argument" })).toBe(false);
+		expect(isTenantNotFound(new Error("schema not found"))).toBe(false);
+	});
+
+	it("returns false for null / undefined / empty", () => {
+		expect(isTenantNotFound(null)).toBe(false);
+		expect(isTenantNotFound(undefined)).toBe(false);
+		expect(isTenantNotFound({})).toBe(false);
 	});
 });
 

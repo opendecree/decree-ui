@@ -2,16 +2,22 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { renderHook, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { useUnusedFields } from "../hooks";
+import { useTenantNotFoundFallback, useUnusedFields } from "../hooks";
 
 // Drive the hook against a fake API client so we exercise the query function's
 // success + error branches. useApiClient just wraps createApiClient(auth).
 const get = vi.fn();
+const navigate = vi.fn();
+const setAuth = vi.fn();
 vi.mock("../../api/client", () => ({
 	createApiClient: () => ({ GET: get }),
 }));
 vi.mock("../auth", () => ({
-	useAuth: () => ({ auth: { subject: "admin", role: "superadmin" } }),
+	useAuth: () => ({ auth: { subject: "admin", role: "superadmin", tenantId: "acme" }, setAuth }),
+}));
+vi.mock("react-router-dom", async (importOriginal) => ({
+	...(await importOriginal<typeof import("react-router-dom")>()),
+	useNavigate: () => navigate,
 }));
 
 function wrapper({ children }: { children: ReactNode }) {
@@ -55,5 +61,26 @@ describe("useUnusedFields", () => {
 	it("is disabled (does not fetch) without a tenant id", () => {
 		renderHook(() => useUnusedFields(""), { wrapper });
 		expect(get).not.toHaveBeenCalled();
+	});
+});
+
+describe("useTenantNotFoundFallback", () => {
+	it("clears the stored tenant and redirects to /tenants on a not-found error", () => {
+		renderHook(() => useTenantNotFoundFallback("acme", new Error("failed to resolve tenant")), {
+			wrapper,
+		});
+		expect(setAuth).toHaveBeenCalledWith(expect.objectContaining({ tenantId: undefined }));
+		expect(navigate).toHaveBeenCalledWith("/tenants", { replace: true });
+	});
+
+	it("does nothing for an unrelated error", () => {
+		renderHook(() => useTenantNotFoundFallback("acme", new Error("schema not found")), { wrapper });
+		expect(setAuth).not.toHaveBeenCalled();
+		expect(navigate).not.toHaveBeenCalled();
+	});
+
+	it("does nothing when there is no error", () => {
+		renderHook(() => useTenantNotFoundFallback("acme", null), { wrapper });
+		expect(navigate).not.toHaveBeenCalled();
 	});
 });

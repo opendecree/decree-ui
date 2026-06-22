@@ -1,9 +1,22 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import type { AuthState } from "../../lib/auth";
 import { AuthContext } from "../../lib/auth";
 import { AuthBar } from "../AuthBar";
+
+vi.mock("../../lib/hooks", () => ({
+	useApiClient: () => ({
+		GET: async () => ({
+			data: {
+				tenants: [
+					{ id: "t1-uuid", name: "tenant1" },
+					{ id: "t2-uuid", name: "tenant2" },
+				],
+			},
+		}),
+	}),
+}));
 
 const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
 
@@ -36,5 +49,11 @@ describe("AuthBar", () => {
 		renderWithAuth({ subject: "alice", role: "user" });
 		const input = screen.getByDisplayValue("alice");
 		expect(input).toBeInTheDocument();
+	});
+
+	it("suggests known tenants in the tenant combobox for a tenant-scoped role", async () => {
+		renderWithAuth({ subject: "admin", role: "admin" });
+		expect(await screen.findByText("tenant1 · t1-uuid")).toBeInTheDocument();
+		expect(screen.getByText("tenant2 · t2-uuid")).toBeInTheDocument();
 	});
 });
