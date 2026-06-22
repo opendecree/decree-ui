@@ -23,7 +23,7 @@ document.documentElement.classList.toggle("dark", prefersDark);
 // biome-ignore lint/style/noNonNullAssertion: root element guaranteed by index.html
 createRoot(document.getElementById("root")!).render(
 	<StrictMode>
-		<BrowserRouter>
+		<BrowserRouter basename={import.meta.env.BASE_URL}>
 			<App />
 		</BrowserRouter>
 	</StrictMode>,

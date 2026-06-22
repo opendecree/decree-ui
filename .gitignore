@@ -13,6 +13,8 @@ dist-ssr
 *.local
 openapi3.json
 coverage
+test-results
+playwright-report
 
 # Editor directories and files
 .vscode/*

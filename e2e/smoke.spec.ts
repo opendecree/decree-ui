@@ -61,6 +61,45 @@ test("tenant config page loads", async ({ page, request }) => {
 	await expect(page.getByTestId("config-editor")).toBeVisible();
 });
 
+test("tenant switch shows the selected tenant's config", async ({ page, request }) => {
+	const yamlB64 = Buffer.from(
+		"spec_version: v1\nname: e2e-switch\nfields:\n  y:\n    type: string",
+	).toString("base64");
+
+	const importRes = await request.post(`${API_URL}/v1/schemas/import`, {
+		headers: { ...AUTH_HEADERS, "content-type": "application/json" },
+		data: { yamlContent: yamlB64, autoPublish: true },
+	});
+	expect(importRes.ok()).toBeTruthy();
+	const { schema } = await importRes.json();
+
+	const tenantA = await request.post(`${API_URL}/v1/tenants`, {
+		headers: { ...AUTH_HEADERS, "content-type": "application/json" },
+		data: { name: "e2e-switch-a", schemaId: schema.id, schemaVersion: 1 },
+	});
+	expect(tenantA.ok()).toBeTruthy();
+	const { tenant: tenantAData } = await tenantA.json();
+
+	const tenantB = await request.post(`${API_URL}/v1/tenants`, {
+		headers: { ...AUTH_HEADERS, "content-type": "application/json" },
+		data: { name: "e2e-switch-b", schemaId: schema.id, schemaVersion: 1 },
+	});
+	expect(tenantB.ok()).toBeTruthy();
+	const { tenant: tenantBData } = await tenantB.json();
+
+	await page.goto("/tenants");
+	await expect(page.getByTestId("tenant-list-page")).toBeVisible();
+
+	await page.getByRole("link", { name: "e2e-switch-a" }).click();
+	await expect(page.getByTestId("config-editor")).toBeVisible();
+	await expect(page).toHaveURL(new RegExp(`/tenants/${tenantAData.id}$`));
+
+	await page.goto("/tenants");
+	await page.getByRole("link", { name: "e2e-switch-b" }).click();
+	await expect(page.getByTestId("config-editor")).toBeVisible();
+	await expect(page).toHaveURL(new RegExp(`/tenants/${tenantBData.id}$`));
+});
+
 test("API calls succeed through nginx proxy", async ({ page }) => {
 	await page.goto("/schemas");
 
