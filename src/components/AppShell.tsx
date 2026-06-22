@@ -121,7 +121,7 @@ export function AppShell() {
 			</aside>
 
 			{/* Main column */}
-			<div className="flex min-w-0 flex-col">
+			<div className="flex min-h-0 min-w-0 flex-col">
 				{/* Topbar */}
 				<header className="flex min-h-14 flex-none items-center gap-2.5 border-b border-line bg-surface px-4 py-2.5">
 					<button
@@ -141,7 +141,7 @@ export function AppShell() {
 				</header>
 
 				{/* Content */}
-				<main className="flex-1 overflow-auto bg-canvas p-6">
+				<main className="flex-1 min-h-0 overflow-auto bg-canvas p-6">
 					<ErrorBoundary>
 						<Outlet />
 					</ErrorBoundary>

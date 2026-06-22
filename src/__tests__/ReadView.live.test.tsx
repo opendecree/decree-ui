@@ -31,6 +31,7 @@ vi.mock("../lib/hooks", () => ({
 	useSchemaVersion: () => ({ data: { schema }, isLoading: false }),
 	useConfig: () => ({ data: { config }, isLoading: false }),
 	useAuditLog: () => ({ data: audit }),
+	useTenantNotFoundFallback: () => {},
 }));
 
 // The live stream is mocked per-test via this mutable value.

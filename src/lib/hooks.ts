@@ -1,7 +1,10 @@
 import { useQuery } from "@tanstack/react-query";
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import { type ApiClient, createApiClient } from "../api/client";
+import { isTenantNotFound } from "./api-error";
 import { useAuth } from "./auth";
+import { config } from "./config";
 
 /** Create an API client from the current auth context. */
 export function useApiClient(): ApiClient {
@@ -49,6 +52,22 @@ export function useTenants() {
 			return data;
 		},
 	});
+}
+
+/**
+ * Recover from a tenant route whose id no longer resolves (a stale debug-bar
+ * value, a deleted tenant, or an id from another environment) instead of
+ * dead-ending on "failed to resolve tenant": clear the offending stored tenant
+ * and, in `full` mode where the list exists, fall back to /tenants.
+ */
+export function useTenantNotFoundFallback(tenantId: string, error: unknown): void {
+	const navigate = useNavigate();
+	const { auth, setAuth } = useAuth();
+	useEffect(() => {
+		if (!isTenantNotFound(error)) return;
+		if (auth.tenantId === tenantId) setAuth({ ...auth, tenantId: undefined });
+		if (config.layoutMode === "full") navigate("/tenants", { replace: true });
+	}, [error, tenantId, auth, setAuth, navigate]);
 }
 
 /** Fetch a single tenant via GET /v1/tenants/{id}. */

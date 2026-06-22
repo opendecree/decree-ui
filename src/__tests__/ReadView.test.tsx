@@ -153,6 +153,7 @@ vi.mock("../lib/hooks", () => ({
 	useSchemaVersion: () => ({ data: { schema }, isLoading: false }),
 	useConfig: () => ({ data: { config }, isLoading: false }),
 	useAuditLog: () => ({ data: audit }),
+	useTenantNotFoundFallback: () => {},
 }));
 
 describe("ReadView", () => {

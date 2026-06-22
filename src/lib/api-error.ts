@@ -63,3 +63,29 @@ export function isAbortedConflict(error: unknown): boolean {
 	const msg = typeof status.message === "string" ? status.message.toLowerCase() : "";
 	return msg.includes("checksum") || msg.includes("aborted") || msg.includes("conflict");
 }
+
+/** gRPC `NOT_FOUND` status code. */
+export const GRPC_CODE_NOT_FOUND = 5;
+
+/**
+ * Whether an API error means the addressed tenant could not be resolved — a bad
+ * or stale tenant id/slug (e.g. a debug-bar value left over from another
+ * environment, or a deleted tenant). Recognised by the gRPC `NOT_FOUND` code,
+ * with a message fallback for the gateway's "failed to resolve tenant". The data
+ * hooks rethrow as a plain `Error`, so the message branch is the common path.
+ */
+export function isTenantNotFound(error: unknown): boolean {
+	if (!error) return false;
+	if (typeof error === "object") {
+		const status = error as RpcStatus;
+		if (status.code === GRPC_CODE_NOT_FOUND) return true;
+	}
+	const raw =
+		error instanceof Error
+			? error.message
+			: typeof error === "object" && error !== null && "message" in error
+				? String((error as { message?: unknown }).message)
+				: "";
+	const msg = raw.toLowerCase();
+	return msg.includes("resolve tenant") || (msg.includes("tenant") && msg.includes("not found"));
+}

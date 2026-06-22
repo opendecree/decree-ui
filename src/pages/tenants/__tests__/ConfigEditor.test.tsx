@@ -151,6 +151,7 @@ vi.mock("../../../lib/hooks", () => ({
 		isLoading: false,
 	}),
 	useFieldLocks: () => ({ data: { locks: mockLocks } }),
+	useTenantNotFoundFallback: () => {},
 }));
 
 /** Build a fresh-config GET response with fee_rate diverged + a new checksum. */

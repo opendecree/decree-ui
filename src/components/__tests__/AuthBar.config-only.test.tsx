@@ -1,3 +1,4 @@
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import type { AuthState } from "../../lib/auth";
@@ -8,11 +9,15 @@ vi.mock("../../lib/config", () => ({
 	config: { layoutMode: "config-only" },
 }));
 
+const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+
 function renderWithAuth(auth: AuthState = { subject: "admin", role: "admin" }) {
 	return render(
-		<AuthContext value={{ auth, setAuth: () => {} }}>
-			<AuthBar />
-		</AuthContext>,
+		<QueryClientProvider client={queryClient}>
+			<AuthContext value={{ auth, setAuth: () => {} }}>
+				<AuthBar />
+			</AuthContext>
+		</QueryClientProvider>,
 	);
 }
 

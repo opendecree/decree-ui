@@ -17,6 +17,7 @@ import {
 	useFieldLocks,
 	useSchemaVersion,
 	useTenant,
+	useTenantNotFoundFallback,
 } from "../../lib/hooks";
 import { type FieldEditBlock, fieldEditBlock } from "../../lib/permissions";
 import { useToast } from "../../lib/toast";
@@ -78,6 +79,7 @@ export function ConfigEditor({ tenantId }: { tenantId: string }) {
 	const { toast } = useToast();
 
 	const { data: tenantData, isLoading: tenantLoading, error: tenantError } = useTenant(tenantId);
+	useTenantNotFoundFallback(tenantId, tenantError);
 	const tenant = tenantData?.tenant;
 
 	const { data: schemaData, isLoading: schemaLoading } = useSchemaVersion(
