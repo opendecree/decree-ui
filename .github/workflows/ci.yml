@@ -87,7 +87,7 @@ jobs:
         run: npx playwright install --with-deps chromium
 
       - name: Log in to ghcr.io
-        uses: docker/login-action@v4.5.2
+        uses: docker/login-action@v4.6.0
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
