@@ -59,7 +59,7 @@ jobs:
 
       - name: Upload coverage to Codecov
         # codecov/codecov-action@v6.0.0
-        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f
+        uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5
         with:
           files: coverage/coverage-final.json
           token: ${{ secrets.CODECOV_TOKEN }}
@@ -87,7 +87,7 @@ jobs:
         run: npx playwright install --with-deps chromium
 
       - name: Log in to ghcr.io
-        uses: docker/login-action@v4.6.0
+        uses: docker/login-action@v4.7.0
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
